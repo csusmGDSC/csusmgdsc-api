@@ -20,3 +20,17 @@ func LoadDBConnection() (string, error) {
 
 	return connectionStr, nil
 }
+
+func LoadJWTSecret() (string, error) {
+	err := godotenv.Load()
+	if err != nil {
+		return "", err
+	}
+
+	jwtSecret := os.Getenv("JWT_SECRET")
+	if jwtSecret == "" {
+		return "", errors.New("JWT Secret Not Found")
+	}
+
+	return jwtSecret, nil
+}

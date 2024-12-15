@@ -12,6 +12,7 @@ func InitRoutes(e *echo.Echo) {
 	authGroup := e.Group("/auth")
 	authGroup.POST("/register", handlers.RegisterUser)
 	authGroup.POST("/login", handlers.LoginUser)
+	authGroup.PATCH("/refresh", handlers.RefreshUser)
 	// authGroup.GET("/:provider/login", auth.OAuthLogin)
 	// authGroup.GET("/:provider/callback", auth.OAuthCallback)
 

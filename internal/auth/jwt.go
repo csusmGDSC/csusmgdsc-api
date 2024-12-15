@@ -1,11 +1,14 @@
 package auth
 
 import (
+	"database/sql"
 	"time"
 
 	"github.com/csusmGDSC/csusmgdsc-api/config"
+	"github.com/csusmGDSC/csusmgdsc-api/internal/db/repositories"
 	"github.com/csusmGDSC/csusmgdsc-api/internal/models"
 	"github.com/golang-jwt/jwt/v5"
+	"github.com/google/uuid"
 )
 
 var (
@@ -20,9 +23,9 @@ type Claims struct {
 	jwt.RegisteredClaims
 }
 
-func GenerateJWT(userID string, role models.Role) (string, error) {
+func GenerateJWT(userID uuid.UUID, role models.Role) (string, error) {
 	claims := &Claims{
-		UserID: userID,
+		UserID: userID.String(),
 		Role:   role.String(),
 		RegisteredClaims: jwt.RegisteredClaims{
 			ExpiresAt: jwt.NewNumericDate(time.Now().Add(AccessTokenExpiry)),
@@ -39,22 +42,37 @@ func GenerateJWT(userID string, role models.Role) (string, error) {
 	return signedString, err
 }
 
-func GenerateRefreshToken(userID string, role models.Role) (string, error) {
+func GenerateRefreshToken(userID uuid.UUID, role models.Role) (string, time.Time, time.Time, error) {
+	issuedAt := jwt.NewNumericDate(time.Now())
+	expiresAt := jwt.NewNumericDate(time.Now().Add(RefreshTokenExpiry))
 	claims := &Claims{
-		UserID: userID,
+		UserID: userID.String(),
 		Role:   role.String(),
 		RegisteredClaims: jwt.RegisteredClaims{
-			ExpiresAt: jwt.NewNumericDate(time.Now().Add(RefreshTokenExpiry)),
+			IssuedAt:  issuedAt,
+			ExpiresAt: expiresAt,
 		},
 	}
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
 	jwtRefreshSecret, err := config.LoadJWTRefreshSecret()
 	if err != nil {
-		return "", err
+		// zero value for a time.Time type specified in https://pkg.go.dev/time#Time
+		zeroTime := time.Date(1, 1, 1, 0, 0, 0, 0, time.UTC)
+		return "", zeroTime, zeroTime, err
 	}
 
 	signedString, err := token.SignedString([]byte(jwtRefreshSecret))
-	return signedString, err
+	return signedString, issuedAt.Time, expiresAt.Time, err
+}
+
+func CreateSession(db *sql.DB, req models.CreateSessionRequest) error {
+	refreshTokenRepo := repositories.NewRefreshTokenRepository(db)
+	err := refreshTokenRepo.Create(&req)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func ValidateJWT(tokenString string, secret []byte) (*Claims, error) {

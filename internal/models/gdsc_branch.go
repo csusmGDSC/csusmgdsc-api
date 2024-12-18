@@ -3,9 +3,9 @@ package models
 type GDSCBranch int
 
 const (
-	Projects GDSCBranch = iota
-	Interview
-	Marketing
+	Projects  GDSCBranch = iota // 0
+	Interview                   // 1
+	Marketing                   // 2
 )
 
 var GDSCBranchMap = map[GDSCBranch]string{

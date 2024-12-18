@@ -3,7 +3,9 @@ package handlers
 import (
 	"database/sql"
 	"net/http"
+	"time"
 
+	"github.com/csusmGDSC/csusmgdsc-api/config"
 	"github.com/csusmGDSC/csusmgdsc-api/internal/auth"
 	"github.com/csusmGDSC/csusmgdsc-api/internal/db"
 	"github.com/csusmGDSC/csusmgdsc-api/internal/db/repositories"
@@ -76,14 +78,96 @@ func LoginUser(c echo.Context) error {
 		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "Authentication failed"})
 	}
 
-	token, err := auth.GenerateJWT(user.ID.String(), user.Role)
+	accessToken, err := auth.GenerateJWT(user.ID, user.Role)
 	if err != nil {
-		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "Failed to generate token"})
+		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "Failed to generate access token"})
 	}
 
+	refreshToken, issuedAt, expiresAt, err := auth.GenerateRefreshToken(user.ID, user.Role)
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "Failed to generate refresh token"})
+	}
+
+	ipAddress := c.RealIP()
+	userAgent := c.Request().Header.Get("User-Agent")
+	sessionReq := &models.CreateSessionRequest{
+		UserID:    user.ID,
+		Token:     refreshToken,
+		IssuedAt:  issuedAt,
+		ExpiresAt: expiresAt,
+		IPAddress: ipAddress,
+		UserAgent: userAgent,
+	}
+
+	err = auth.CreateSession(dbConn, *sessionReq)
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "Failed to create new session"})
+	}
+
+	cookie := new(http.Cookie)
+	cookie.Name = "refresh_token"
+	cookie.Value = refreshToken
+	cookie.HttpOnly = true
+	// cookie.Secure = true TODO: Once in production set enable this line
+	cookie.SameSite = http.SameSiteStrictMode
+	cookie.Path = "/"
+	cookie.Expires = expiresAt
+	c.SetCookie(cookie)
+
 	return c.JSON(http.StatusOK, map[string]interface{}{
-		"token": token,
-		"user":  user,
+		"accessToken": accessToken,
+		"user":        user,
+	})
+}
+
+func RefreshUser(c echo.Context) error {
+	cookie, err := c.Cookie("refresh_token")
+	if err != nil {
+		return c.JSON(http.StatusUnauthorized, map[string]string{"error": "Cookie not found"})
+	}
+
+	refreshToken := cookie.Value
+	if refreshToken == "" {
+		return c.JSON(http.StatusBadRequest, map[string]string{"error": "Refresh token is required"})
+	}
+
+	jwtRefreshSecret, err := config.LoadJWTRefreshSecret()
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "Internal loading error"})
+	}
+
+	claims, err := auth.ValidateJWT(refreshToken, []byte(jwtRefreshSecret))
+	if err != nil {
+		return c.JSON(http.StatusUnauthorized, map[string]string{"error": "Invalid token"})
+	}
+
+	dbConn, err := db.ConnectDB()
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "Database connection failed"})
+	}
+	defer dbConn.Close()
+
+	refreshTokensRepo := repositories.NewRefreshTokenRepository(dbConn)
+	storedToken, err := refreshTokensRepo.GetByToken(refreshToken)
+	if err != nil {
+		return c.JSON(http.StatusExpectationFailed, map[string]string{"error": err.Error()})
+	}
+
+	if claims.UserID != storedToken.UserID.String() {
+		return c.JSON(http.StatusUnauthorized, map[string]string{"error": "Invalid token claims"})
+	}
+
+	if time.Now().After(storedToken.ExpiresAt) {
+		return c.JSON(http.StatusUnauthorized, map[string]string{"error": "Refresh token expired"})
+	}
+
+	newAccessToken, err := auth.GenerateJWT(storedToken.UserID, models.Role(claims.Role))
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "Could not create refresh token"})
+	}
+
+	return c.JSON(http.StatusOK, map[string]string{
+		"accessToken": newAccessToken,
 	})
 }
 

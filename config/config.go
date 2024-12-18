@@ -21,16 +21,30 @@ func LoadDBConnection() (string, error) {
 	return connectionStr, nil
 }
 
-func LoadJWTSecret() (string, error) {
+func LoadJWTAccessSecret() (string, error) {
 	err := godotenv.Load()
 	if err != nil {
 		return "", err
 	}
 
-	jwtSecret := os.Getenv("JWT_SECRET")
-	if jwtSecret == "" {
+	jwtAccessSecret := os.Getenv("JWT_ACCESS_SECRET")
+	if jwtAccessSecret == "" {
 		return "", errors.New("JWT Secret Not Found")
 	}
 
-	return jwtSecret, nil
+	return jwtAccessSecret, nil
+}
+
+func LoadJWTRefreshSecret() (string, error) {
+	err := godotenv.Load()
+	if err != nil {
+		return "", err
+	}
+
+	jwtRefreshSecret := os.Getenv("JWT_REFRESH_SECRET")
+	if jwtRefreshSecret == "" {
+		return "", errors.New("JWT Refresh Secret Not Found")
+	}
+
+	return jwtRefreshSecret, nil
 }

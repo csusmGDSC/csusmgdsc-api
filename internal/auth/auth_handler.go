@@ -7,6 +7,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/csusmGDSC/csusmgdsc-api/config"
 	"github.com/csusmGDSC/csusmgdsc-api/internal/db/repositories"
 	"github.com/csusmGDSC/csusmgdsc-api/internal/models"
 	"github.com/google/uuid"
@@ -124,9 +125,14 @@ func AuthMiddleware(next echo.HandlerFunc) echo.HandlerFunc {
 			return echo.NewHTTPError(http.StatusUnauthorized, "missing authorization header")
 		}
 
+		jwtAccessSecret, err := config.LoadJWTAccessSecret()
+		if err != nil {
+			return echo.NewHTTPError(http.StatusInternalServerError, "Internal loading error")
+		}
+
 		// Extract token from "Bearer <token>"
 		tokenString := strings.TrimPrefix(authHeader, "Bearer ")
-		claims, err := ValidateJWT(tokenString)
+		claims, err := ValidateJWT(tokenString, []byte(jwtAccessSecret))
 		if err != nil {
 			return echo.NewHTTPError(http.StatusUnauthorized, "invalid token")
 		}

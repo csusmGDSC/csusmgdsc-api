@@ -13,6 +13,8 @@ func InitRoutes(e *echo.Echo) {
 	authGroup.POST("/register", handlers.RegisterUser)
 	authGroup.POST("/login", handlers.LoginUser)
 	authGroup.PATCH("/refresh", handlers.RefreshUser)
+	authGroup.POST("/logout", handlers.LogoutUser)
+	authGroup.POST("/logoutAll", handlers.LogoutAll, auth.AuthMiddleware)
 	// authGroup.GET("/:provider/login", auth.OAuthLogin)
 	// authGroup.GET("/:provider/callback", auth.OAuthCallback)
 

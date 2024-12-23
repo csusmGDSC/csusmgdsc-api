@@ -120,6 +120,75 @@ func LoginUser(c echo.Context) error {
 	})
 }
 
+func LogoutUser(c echo.Context) error {
+	cookie, err := c.Cookie("refresh_token")
+	if err != nil {
+		return c.JSON(http.StatusUnauthorized, map[string]string{"error": "Cookie not found"})
+	}
+
+	refreshToken := cookie.Value
+	if refreshToken == "" {
+		return c.JSON(http.StatusBadRequest, map[string]string{"error": "Refresh token is required"})
+	}
+
+	dbConn, err := db.ConnectDB()
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "Database connection failed"})
+	}
+	defer dbConn.Close()
+
+	refreshTokensRepo := repositories.NewRefreshTokenRepository(dbConn)
+	err = refreshTokensRepo.DeleteByToken(refreshToken)
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "Failed to delete token"})
+	}
+
+	clearedCookie := &http.Cookie{
+		Name:     "refresh_token",
+		Value:    "",
+		Path:     "/",
+		Expires:  time.Unix(0, 0), // Expire immediately
+		HttpOnly: true,
+		Secure:   true,
+		SameSite: http.SameSiteStrictMode,
+	}
+	c.SetCookie(clearedCookie)
+
+	return c.JSON(http.StatusOK, map[string]string{"message": "Logged out successfully"})
+}
+
+func LogoutAll(c echo.Context) error {
+	userID, ok := c.Get("user_id").(string)
+	if !ok || userID == "" {
+		return c.JSON(http.StatusUnauthorized, map[string]string{"error": "Unauthorized"})
+	}
+
+	dbConn, err := db.ConnectDB()
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "Database connection failed"})
+	}
+	defer dbConn.Close()
+
+	refreshTokensRepo := repositories.NewRefreshTokenRepository(dbConn)
+	err = refreshTokensRepo.DeleteAllByUserID(userID)
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "Failed to delete tokens"})
+	}
+
+	clearedCookie := &http.Cookie{
+		Name:     "refresh_token",
+		Value:    "",
+		Path:     "/",
+		Expires:  time.Unix(0, 0), // Expire immediately
+		HttpOnly: true,
+		Secure:   true,
+		SameSite: http.SameSiteStrictMode,
+	}
+	c.SetCookie(clearedCookie)
+
+	return c.JSON(http.StatusOK, map[string]string{"message": "All sessions have been logged out successfully"})
+}
+
 func RefreshUser(c echo.Context) error {
 	cookie, err := c.Cookie("refresh_token")
 	if err != nil {
@@ -178,8 +247,8 @@ func UpdateUser(c echo.Context) error {
 	}
 
 	// Check if the authenticated user has permission to update this user
-	authenticatedUserID := c.Get("user_id").(string)
-	if authenticatedUserID != userID {
+	authenticatedUserID, ok := c.Get("user_id").(string)
+	if !ok || authenticatedUserID != userID {
 		return c.JSON(http.StatusForbidden, map[string]string{"error": "Not authorized to update this user"})
 	}
 

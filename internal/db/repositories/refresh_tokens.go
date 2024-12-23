@@ -49,3 +49,25 @@ func (r *RefreshTokenRepository) GetByToken(cookieToken string) (*models.Refresh
 
 	return refreshToken, nil
 }
+
+func (r *RefreshTokenRepository) DeleteByToken(cookieToken string) error {
+	query := `
+		DELETE FROM refresh_tokens WHERE token = $1
+	`
+	_, err := r.db.Exec(query, cookieToken)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (r *RefreshTokenRepository) DeleteAllByUserID(userID string) error {
+	query := `
+		DELETE FROM refresh_tokens WHERE user_id = $1
+	`
+	_, err := r.db.Exec(query, userID)
+	if err != nil {
+		return err
+	}
+	return nil
+}

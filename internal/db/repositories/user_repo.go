@@ -2,6 +2,7 @@ package repositories
 
 import (
 	"database/sql"
+	"errors"
 	"strings"
 	"time"
 
@@ -249,4 +250,26 @@ func (r *UserRepository) GetByID(id uuid.UUID) (*models.User, error) {
 	}
 
 	return user, nil
+}
+
+func (r *UserRepository) DeleteByID(userID string) error {
+	query := `
+		DELETE FROM users WHERE id = $1
+	`
+
+	result, err := r.db.Exec(query, userID)
+	if err != nil {
+		return err
+	}
+
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return err
+	}
+
+	if rowsAffected == 0 {
+		return errors.New("error checking rows affected")
+	}
+
+	return nil
 }

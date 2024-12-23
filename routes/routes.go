@@ -18,7 +18,9 @@ func InitRoutes(e *echo.Echo) {
 	// authGroup.GET("/:provider/login", auth.OAuthLogin)
 	// authGroup.GET("/:provider/callback", auth.OAuthCallback)
 
+	// User routes can be used called from User or Admin
 	apiUserGroup := e.Group("/user")
 	apiUserGroup.Use(auth.AuthMiddleware)
 	apiUserGroup.PUT("/update/:id", handlers.UpdateUser)
+	apiUserGroup.DELETE("/delete/:id", handlers.DeleteUser)
 }

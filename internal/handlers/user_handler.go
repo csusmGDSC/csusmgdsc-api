@@ -240,6 +240,7 @@ func RefreshUser(c echo.Context) error {
 	})
 }
 
+// TODO: Add Role checking to allow Admin's to update non-Admin users
 func UpdateUser(c echo.Context) error {
 	userID := c.Param("id")
 	if userID == "" {
@@ -286,4 +287,31 @@ func UpdateUser(c echo.Context) error {
 	}
 
 	return c.JSON(http.StatusOK, updatedUser)
+}
+
+// TODO: Add Role checking to allow Admin's to delete non-Admin users
+func DeleteUser(c echo.Context) error {
+	userID := c.Param("id")
+	if userID == "" {
+		return c.JSON(http.StatusBadRequest, map[string]string{"error": "User ID is required"})
+	}
+
+	authenticatedUserID, ok := c.Get("user_id").(string)
+	if !ok || authenticatedUserID != userID {
+		return c.JSON(http.StatusUnauthorized, map[string]string{"error": "Not authorized to delete this user"})
+	}
+
+	dbConn, err := db.ConnectDB()
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "Database connection failed"})
+	}
+	defer dbConn.Close()
+
+	userRepo := repositories.NewUserRepository(dbConn)
+	err = userRepo.DeleteByID(userID)
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "Failed to delete user"})
+	}
+
+	return c.JSON(http.StatusOK, map[string]string{"message": "User deleted successfully"})
 }

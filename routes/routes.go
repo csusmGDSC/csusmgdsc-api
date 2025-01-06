@@ -6,21 +6,21 @@ import (
 	"github.com/labstack/echo/v4"
 )
 
-func InitRoutes(e *echo.Echo) {
-	e.POST("/events", handlers.InsertEventHandler)
+func InitRoutes(e *echo.Echo, h *handlers.Handler) {
+	e.POST("/events", h.InsertEventHandler)
 
 	authGroup := e.Group("/auth")
-	authGroup.POST("/register", handlers.RegisterUser)
-	authGroup.POST("/login", handlers.LoginUser)
-	authGroup.PATCH("/refresh", handlers.RefreshUser)
-	authGroup.POST("/logout", handlers.LogoutUser)
-	authGroup.POST("/logoutAll", handlers.LogoutAll, auth.AuthMiddleware)
+	authGroup.POST("/register", h.RegisterUser)
+	authGroup.POST("/login", h.LoginUser)
+	authGroup.PATCH("/refresh", h.RefreshUser)
+	authGroup.POST("/logout", h.LogoutUser)
+	authGroup.POST("/logoutAll", h.LogoutAll, auth.AuthMiddleware)
 	// authGroup.GET("/:provider/login", auth.OAuthLogin)
 	// authGroup.GET("/:provider/callback", auth.OAuthCallback)
 
 	// User routes can be used called from User or Admin
 	apiUserGroup := e.Group("/user")
 	apiUserGroup.Use(auth.AuthMiddleware)
-	apiUserGroup.PUT("/update/:id", handlers.UpdateUser)
-	apiUserGroup.DELETE("/delete/:id", handlers.DeleteUser)
+	apiUserGroup.PUT("/update/:id", h.UpdateUser)
+	apiUserGroup.DELETE("/delete/:id", h.DeleteUser)
 }

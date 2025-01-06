@@ -2,10 +2,52 @@ package config
 
 import (
 	"errors"
+	"log"
 	"os"
+	"sync"
 
 	"github.com/joho/godotenv"
 )
+
+type Config struct {
+	DBConnectionUrl  string
+	JWTAccessSecret  string
+	JWTRefreshSecret string
+}
+
+var (
+	once   sync.Once
+	config *Config
+)
+
+func LoadConfig() *Config {
+	once.Do(func() {
+		// Determine the .env file to load
+		envFile := ".env"
+		if os.Getenv("GO_ENV") == "test" {
+			envFile = ".env.test"
+		}
+
+		err := godotenv.Load(envFile)
+		if err != nil {
+			log.Printf("Warning: could not load %s file: %v", envFile, err)
+		}
+
+		config = &Config{
+			DBConnectionUrl:  getEnv("DATABASE_URL"),
+			JWTAccessSecret:  getEnv("JWT_ACCESS_SECRET"),
+			JWTRefreshSecret: getEnv("JWT_REFRESH_SECRET"),
+		}
+	})
+	return config
+}
+
+func getEnv(key string) string {
+	if value, exists := os.LookupEnv(key); exists {
+		return value
+	}
+	return ""
+}
 
 func LoadDBConnection() (string, error) {
 	err := godotenv.Load()

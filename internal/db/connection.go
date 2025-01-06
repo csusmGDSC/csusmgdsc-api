@@ -8,25 +8,31 @@ import (
 	_ "github.com/lib/pq" // PostgreSQL driver
 )
 
-func ConnectDB() (*sql.DB, error) {
-	connectionStr, err := config.LoadDBConnection()
-	if err != nil {
-		log.Fatalf("Failed to load connection str: %v", err)
-		return nil, err
-	}
+var db *sql.DB
 
-	db, err := sql.Open("postgres", connectionStr)
+func Connect() {
+	cfg := config.LoadConfig()
+	var err error
+	db, err = sql.Open("postgres", cfg.DBConnectionUrl)
 	if err != nil {
-		log.Fatalf("Failed to connect to database: %v", err)
-		return nil, err
+		log.Fatalf("Failed to connect to the database: %v", err)
 	}
 
 	err = db.Ping()
 	if err != nil {
 		log.Fatalf("Failed to ping the database: %v", err)
-		return nil, err
 	}
 
 	log.Println("Database connection established")
-	return db, nil
+}
+
+func GetDB() *sql.DB {
+	return db
+}
+
+func Close() {
+	if db != nil {
+		db.Close()
+		log.Println("Database connection closed")
+	}
 }

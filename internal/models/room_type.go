@@ -3,10 +3,10 @@ package models
 type RoomType int
 
 const (
-	Lecture    RoomType = iota // 0
-	Classroom                  // 1
-	Auditorium                 // 2
-	Other                      // 3
+	Lecture    RoomType = iota + 1 // 1
+	Classroom                      // 2
+	Auditorium                     // 3
+	Other                          // 4
 )
 
 var RoomTypeNames = map[RoomType]string{

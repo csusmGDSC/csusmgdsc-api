@@ -49,6 +49,7 @@ type CreateUserRequest struct {
 	LastName       string       `json:"last_name" validate:"required"`
 	Email          string       `json:"email" validate:"required,email"`
 	Password       string       `json:"password" validate:"required,min=8"`
+	Role           Role         `json:"role,omitempty" validate:"required,oneof=USER ADMIN"`
 	Image          *string      `json:"image,omitempty"`
 	Position       GDSCPosition `json:"position" validate:"required"`
 	Branch         GDSCBranch   `json:"branch" validate:"required"`
@@ -59,7 +60,7 @@ type CreateUserRequest struct {
 	Bio            *string      `json:"bio,omitempty"`
 	Tags           []string     `json:"tags,omitempty"`
 	Website        *string      `json:"website,omitempty"`
-	GraduationDate *time.Time   `json:"graduation_date,omitempty"`
+	GraduationDate *time.Time   `json:"graduation_date,omitempty" validate:"required"`
 }
 
 type UpdateUserRequest struct {

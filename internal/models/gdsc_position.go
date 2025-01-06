@@ -3,7 +3,7 @@ package models
 type GDSCPosition int
 
 const (
-	Student GDSCPosition = iota
+	Student GDSCPosition = iota + 1
 	Alumni
 	Mentor
 	Leader

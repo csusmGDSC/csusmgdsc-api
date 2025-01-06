@@ -2,10 +2,11 @@ package models
 
 type GDSCBranch int
 
+// Enum types must be plus 1 since 0 value in JSON is registered as empty
 const (
-	Projects  GDSCBranch = iota // 0
-	Interview                   // 1
-	Marketing                   // 2
+	Projects GDSCBranch = iota + 1
+	Interview
+	Marketing
 )
 
 var GDSCBranchMap = map[GDSCBranch]string{

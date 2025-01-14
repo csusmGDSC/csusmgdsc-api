@@ -14,14 +14,14 @@ import (
 	"github.com/labstack/echo/v4"
 )
 
-func RegisterUser(c echo.Context) error {
+func (h *Handler) RegisterUser(c echo.Context) error {
 	var req models.CreateUserRequest
 	if err := c.Bind(&req); err != nil {
 		return c.JSON(http.StatusBadRequest, map[string]string{"error": "Invalid request format"})
 	}
 	req.FullName = req.FirstName + " " + req.LastName
 
-	if err := validate.Struct(req); err != nil {
+	if err := h.Validate.Struct(req); err != nil {
 		var validationErrors []string
 		for _, err := range err.(validator.ValidationErrors) {
 			validationErrors = append(validationErrors, err.Field()+" "+err.Tag())
@@ -31,11 +31,7 @@ func RegisterUser(c echo.Context) error {
 		})
 	}
 
-	dbConn, err := db.ConnectDB()
-	if err != nil {
-		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "Database connection failed"})
-	}
-	defer dbConn.Close()
+	dbConn := db.GetDB()
 
 	user, err := auth.RegisterUser(dbConn, req)
 	if err != nil {
@@ -48,13 +44,13 @@ func RegisterUser(c echo.Context) error {
 	return c.JSON(http.StatusCreated, user)
 }
 
-func LoginUser(c echo.Context) error {
+func (h *Handler) LoginUser(c echo.Context) error {
 	var req models.LoginRequest
 	if err := c.Bind(&req); err != nil {
 		return c.JSON(http.StatusBadRequest, map[string]string{"error": "Invalid request format"})
 	}
 
-	if err := validate.Struct(req); err != nil {
+	if err := h.Validate.Struct(req); err != nil {
 		var validationErrors []string
 		for _, err := range err.(validator.ValidationErrors) {
 			validationErrors = append(validationErrors, err.Field()+" "+err.Tag())
@@ -64,11 +60,7 @@ func LoginUser(c echo.Context) error {
 		})
 	}
 
-	dbConn, err := db.ConnectDB()
-	if err != nil {
-		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "Database connection failed"})
-	}
-	defer dbConn.Close()
+	dbConn := db.GetDB()
 
 	user, err := auth.AuthenticateUser(dbConn, req)
 	if err != nil {
@@ -120,7 +112,7 @@ func LoginUser(c echo.Context) error {
 	})
 }
 
-func LogoutUser(c echo.Context) error {
+func (h *Handler) LogoutUser(c echo.Context) error {
 	cookie, err := c.Cookie("refresh_token")
 	if err != nil {
 		return c.JSON(http.StatusUnauthorized, map[string]string{"error": "Cookie not found"})
@@ -131,11 +123,7 @@ func LogoutUser(c echo.Context) error {
 		return c.JSON(http.StatusBadRequest, map[string]string{"error": "Refresh token is required"})
 	}
 
-	dbConn, err := db.ConnectDB()
-	if err != nil {
-		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "Database connection failed"})
-	}
-	defer dbConn.Close()
+	dbConn := db.GetDB()
 
 	refreshTokensRepo := repositories.NewRefreshTokenRepository(dbConn)
 	err = refreshTokensRepo.DeleteByToken(refreshToken)
@@ -157,20 +145,16 @@ func LogoutUser(c echo.Context) error {
 	return c.JSON(http.StatusOK, map[string]string{"message": "Logged out successfully"})
 }
 
-func LogoutAll(c echo.Context) error {
+func (h *Handler) LogoutAll(c echo.Context) error {
 	userID, ok := c.Get("user_id").(string)
 	if !ok || userID == "" {
 		return c.JSON(http.StatusUnauthorized, map[string]string{"error": "Unauthorized"})
 	}
 
-	dbConn, err := db.ConnectDB()
-	if err != nil {
-		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "Database connection failed"})
-	}
-	defer dbConn.Close()
+	dbConn := db.GetDB()
 
 	refreshTokensRepo := repositories.NewRefreshTokenRepository(dbConn)
-	err = refreshTokensRepo.DeleteAllByUserID(userID)
+	err := refreshTokensRepo.DeleteAllByUserID(userID)
 	if err != nil {
 		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "Failed to delete tokens"})
 	}
@@ -189,7 +173,7 @@ func LogoutAll(c echo.Context) error {
 	return c.JSON(http.StatusOK, map[string]string{"message": "All sessions have been logged out successfully"})
 }
 
-func RefreshUser(c echo.Context) error {
+func (h *Handler) RefreshUser(c echo.Context) error {
 	cookie, err := c.Cookie("refresh_token")
 	if err != nil {
 		return c.JSON(http.StatusUnauthorized, map[string]string{"error": "Cookie not found"})
@@ -210,11 +194,7 @@ func RefreshUser(c echo.Context) error {
 		return c.JSON(http.StatusUnauthorized, map[string]string{"error": "Invalid token"})
 	}
 
-	dbConn, err := db.ConnectDB()
-	if err != nil {
-		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "Database connection failed"})
-	}
-	defer dbConn.Close()
+	dbConn := db.GetDB()
 
 	refreshTokensRepo := repositories.NewRefreshTokenRepository(dbConn)
 	storedToken, err := refreshTokensRepo.GetByToken(refreshToken)
@@ -241,7 +221,7 @@ func RefreshUser(c echo.Context) error {
 }
 
 // TODO: Add Role checking to allow Admin's to update non-Admin users
-func UpdateUser(c echo.Context) error {
+func (h *Handler) UpdateUser(c echo.Context) error {
 	userID := c.Param("id")
 	if userID == "" {
 		return c.JSON(http.StatusBadRequest, map[string]string{"error": "User ID is required"})
@@ -260,7 +240,7 @@ func UpdateUser(c echo.Context) error {
 	}
 
 	// Validate the request
-	if err := validate.Struct(req); err != nil {
+	if err := h.Validate.Struct(req); err != nil {
 		var validationErrors []string
 		for _, err := range err.(validator.ValidationErrors) {
 			validationErrors = append(validationErrors, err.Field()+" "+err.Tag())
@@ -270,11 +250,7 @@ func UpdateUser(c echo.Context) error {
 		})
 	}
 
-	dbConn, err := db.ConnectDB()
-	if err != nil {
-		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "Database connection failed"})
-	}
-	defer dbConn.Close()
+	dbConn := db.GetDB()
 
 	// Update user
 	userRepo := repositories.NewUserRepository(dbConn)
@@ -290,7 +266,7 @@ func UpdateUser(c echo.Context) error {
 }
 
 // TODO: Add Role checking to allow Admin's to delete non-Admin users
-func DeleteUser(c echo.Context) error {
+func (h *Handler) DeleteUser(c echo.Context) error {
 	userID := c.Param("id")
 	if userID == "" {
 		return c.JSON(http.StatusBadRequest, map[string]string{"error": "User ID is required"})
@@ -301,14 +277,10 @@ func DeleteUser(c echo.Context) error {
 		return c.JSON(http.StatusUnauthorized, map[string]string{"error": "Not authorized to delete this user"})
 	}
 
-	dbConn, err := db.ConnectDB()
-	if err != nil {
-		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "Database connection failed"})
-	}
-	defer dbConn.Close()
+	dbConn := db.GetDB()
 
 	userRepo := repositories.NewUserRepository(dbConn)
-	err = userRepo.DeleteByID(userID)
+	err := userRepo.DeleteByID(userID)
 	if err != nil {
 		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "Failed to delete user"})
 	}

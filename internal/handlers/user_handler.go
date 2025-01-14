@@ -7,7 +7,6 @@ import (
 
 	"github.com/csusmGDSC/csusmgdsc-api/config"
 	"github.com/csusmGDSC/csusmgdsc-api/internal/auth"
-	"github.com/csusmGDSC/csusmgdsc-api/internal/db"
 	"github.com/csusmGDSC/csusmgdsc-api/internal/db/repositories"
 	"github.com/csusmGDSC/csusmgdsc-api/internal/models"
 	"github.com/go-playground/validator"
@@ -31,7 +30,7 @@ func (h *Handler) RegisterUser(c echo.Context) error {
 		})
 	}
 
-	dbConn := db.GetDB()
+	dbConn := h.DB.GetDB()
 
 	user, err := auth.RegisterUser(dbConn, req)
 	if err != nil {
@@ -60,7 +59,7 @@ func (h *Handler) LoginUser(c echo.Context) error {
 		})
 	}
 
-	dbConn := db.GetDB()
+	dbConn := h.DB.GetDB()
 
 	user, err := auth.AuthenticateUser(dbConn, req)
 	if err != nil {
@@ -123,7 +122,7 @@ func (h *Handler) LogoutUser(c echo.Context) error {
 		return c.JSON(http.StatusBadRequest, map[string]string{"error": "Refresh token is required"})
 	}
 
-	dbConn := db.GetDB()
+	dbConn := h.DB.GetDB()
 
 	refreshTokensRepo := repositories.NewRefreshTokenRepository(dbConn)
 	err = refreshTokensRepo.DeleteByToken(refreshToken)
@@ -151,7 +150,7 @@ func (h *Handler) LogoutAll(c echo.Context) error {
 		return c.JSON(http.StatusUnauthorized, map[string]string{"error": "Unauthorized"})
 	}
 
-	dbConn := db.GetDB()
+	dbConn := h.DB.GetDB()
 
 	refreshTokensRepo := repositories.NewRefreshTokenRepository(dbConn)
 	err := refreshTokensRepo.DeleteAllByUserID(userID)
@@ -194,7 +193,7 @@ func (h *Handler) RefreshUser(c echo.Context) error {
 		return c.JSON(http.StatusUnauthorized, map[string]string{"error": "Invalid token"})
 	}
 
-	dbConn := db.GetDB()
+	dbConn := h.DB.GetDB()
 
 	refreshTokensRepo := repositories.NewRefreshTokenRepository(dbConn)
 	storedToken, err := refreshTokensRepo.GetByToken(refreshToken)
@@ -250,7 +249,7 @@ func (h *Handler) UpdateUser(c echo.Context) error {
 		})
 	}
 
-	dbConn := db.GetDB()
+	dbConn := h.DB.GetDB()
 
 	// Update user
 	userRepo := repositories.NewUserRepository(dbConn)
@@ -277,7 +276,7 @@ func (h *Handler) DeleteUser(c echo.Context) error {
 		return c.JSON(http.StatusUnauthorized, map[string]string{"error": "Not authorized to delete this user"})
 	}
 
-	dbConn := db.GetDB()
+	dbConn := h.DB.GetDB()
 
 	userRepo := repositories.NewUserRepository(dbConn)
 	err := userRepo.DeleteByID(userID)

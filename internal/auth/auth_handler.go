@@ -125,14 +125,10 @@ func AuthMiddleware(next echo.HandlerFunc) echo.HandlerFunc {
 			return echo.NewHTTPError(http.StatusUnauthorized, "missing authorization header")
 		}
 
-		jwtAccessSecret, err := config.LoadJWTAccessSecret()
-		if err != nil {
-			return echo.NewHTTPError(http.StatusInternalServerError, "Internal loading error")
-		}
-
+		cfg := config.LoadConfig()
 		// Extract token from "Bearer <token>"
 		tokenString := strings.TrimPrefix(authHeader, "Bearer ")
-		claims, err := ValidateJWT(tokenString, []byte(jwtAccessSecret))
+		claims, err := ValidateJWT(tokenString, []byte(cfg.JWTAccessSecret))
 		if err != nil {
 			return echo.NewHTTPError(http.StatusUnauthorized, "invalid token")
 		}

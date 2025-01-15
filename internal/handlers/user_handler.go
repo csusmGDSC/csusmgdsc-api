@@ -183,12 +183,8 @@ func (h *Handler) RefreshUser(c echo.Context) error {
 		return c.JSON(http.StatusBadRequest, map[string]string{"error": "Refresh token is required"})
 	}
 
-	jwtRefreshSecret, err := config.LoadJWTRefreshSecret()
-	if err != nil {
-		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "Internal loading error"})
-	}
-
-	claims, err := auth.ValidateJWT(refreshToken, []byte(jwtRefreshSecret))
+	cfg := config.LoadConfig()
+	claims, err := auth.ValidateJWT(refreshToken, []byte(cfg.JWTRefreshSecret))
 	if err != nil {
 		return c.JSON(http.StatusUnauthorized, map[string]string{"error": "Invalid token"})
 	}

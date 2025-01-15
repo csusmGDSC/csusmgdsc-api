@@ -33,12 +33,8 @@ func GenerateJWT(userID uuid.UUID, role models.Role) (string, error) {
 	}
 
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
-	jwtAccessSecret, err := config.LoadJWTAccessSecret()
-	if err != nil {
-		return "", err
-	}
-
-	signedString, err := token.SignedString([]byte(jwtAccessSecret))
+	cfg := config.LoadConfig()
+	signedString, err := token.SignedString([]byte(cfg.JWTAccessSecret))
 	return signedString, err
 }
 
@@ -54,14 +50,8 @@ func GenerateRefreshToken(userID uuid.UUID, role models.Role) (string, time.Time
 		},
 	}
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
-	jwtRefreshSecret, err := config.LoadJWTRefreshSecret()
-	if err != nil {
-		// zero value for a time.Time type specified in https://pkg.go.dev/time#Time
-		zeroTime := time.Date(1, 1, 1, 0, 0, 0, 0, time.UTC)
-		return "", zeroTime, zeroTime, err
-	}
-
-	signedString, err := token.SignedString([]byte(jwtRefreshSecret))
+	cfg := config.LoadConfig()
+	signedString, err := token.SignedString([]byte(cfg.JWTRefreshSecret))
 	return signedString, issuedAt.Time, expiresAt.Time, err
 }
 

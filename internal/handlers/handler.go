@@ -1,18 +1,18 @@
 package handlers
 
 import (
-	"github.com/csusmGDSC/csusmgdsc-api/config"
+	"github.com/csusmGDSC/csusmgdsc-api/internal/db"
 	"github.com/go-playground/validator"
 )
 
 type Handler struct {
-	Config   *config.Config
 	Validate *validator.Validate
+	DB       db.DatabaseConnection
 }
 
-func NewHandler() *Handler {
+func NewHandler(dbConn db.DatabaseConnection) *Handler {
 	return &Handler{
-		Config:   config.LoadConfig(),
 		Validate: validator.New(),
+		DB:       dbConn,
 	}
 }

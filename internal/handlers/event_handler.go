@@ -5,7 +5,6 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/csusmGDSC/csusmgdsc-api/internal/db"
 	"github.com/csusmGDSC/csusmgdsc-api/internal/db/repositories"
 	"github.com/csusmGDSC/csusmgdsc-api/internal/models"
 	"github.com/go-playground/validator"
@@ -36,7 +35,7 @@ func (h *Handler) InsertEventHandler(c echo.Context) error {
 	event.CreatedAt = time.Now()
 	event.UpdatedAt = time.Now()
 
-	dbConn := db.GetDB()
+	dbConn := h.DB.GetDB()
 
 	if err := repositories.InsertEvent(dbConn, event); err != nil {
 		log.Println("Insert event error:", err)

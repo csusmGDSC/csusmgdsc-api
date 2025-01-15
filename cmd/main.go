@@ -16,11 +16,11 @@ import (
 )
 
 func main() {
-	db.Connect()
-	defer db.Close()
+	dbConn := db.GetInstance()
+	defer dbConn.Close()
 
 	e := echo.New()
-	h := handlers.NewHandler()
+	h := handlers.NewHandler(dbConn)
 
 	e.Use(middleware.Logger())
 	e.Use(middleware.Recover())

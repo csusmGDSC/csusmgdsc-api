@@ -8,6 +8,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/csusmGDSC/csusmgdsc-api/internal/auth"
 	"github.com/csusmGDSC/csusmgdsc-api/internal/db"
 	"github.com/csusmGDSC/csusmgdsc-api/internal/handlers"
 	"github.com/csusmGDSC/csusmgdsc-api/routes"
@@ -18,6 +19,8 @@ import (
 func main() {
 	dbConn := db.GetInstance()
 	defer dbConn.Close()
+
+	auth.InitOAuth()
 
 	e := echo.New()
 	h := handlers.NewHandler(dbConn)

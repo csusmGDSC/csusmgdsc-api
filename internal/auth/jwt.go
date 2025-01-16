@@ -12,9 +12,15 @@ import (
 )
 
 var (
-	AccessTokenExpiry  = time.Minute * 15   // Short-lived access token
-	RefreshTokenExpiry = time.Hour * 24 * 7 // Long-lived refresh token
+	AccessTokenExpiry    = time.Minute * 15   // Short-lived access token
+	RefreshTokenExpiry   = time.Hour * 24 * 7 // Long-lived refresh token
+	TemporaryTokenExpiry = time.Minute * 15   // Short-lived temporary token
 )
+
+type TempTokenClaims struct {
+	OAuthUserData *OAuthUserData `json:"oauth_data"`
+	jwt.RegisteredClaims
+}
 
 // Custom claims to set on JWT https://pkg.go.dev/github.com/golang-jwt/jwt/v4#NewWithClaims
 type Claims struct {
@@ -53,6 +59,39 @@ func GenerateRefreshToken(userID uuid.UUID, role models.Role) (string, time.Time
 	cfg := config.LoadConfig()
 	signedString, err := token.SignedString([]byte(cfg.JWTRefreshSecret))
 	return signedString, issuedAt.Time, expiresAt.Time, err
+}
+
+func GenerateTemporaryToken(oauthData *OAuthUserData) (string, error) {
+	claims := &TempTokenClaims{
+		OAuthUserData: oauthData,
+		RegisteredClaims: jwt.RegisteredClaims{
+			ExpiresAt: jwt.NewNumericDate(time.Now().Add(TemporaryTokenExpiry)),
+			IssuedAt:  jwt.NewNumericDate(time.Now()),
+			NotBefore: jwt.NewNumericDate(time.Now()),
+		},
+	}
+
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+	cfg := config.LoadConfig()
+
+	return token.SignedString([]byte(cfg.JWTAccessSecret))
+}
+
+func ValidateTemporaryToken(tokenString string) (*TempTokenClaims, error) {
+	cfg := config.LoadConfig()
+
+	token, err := jwt.ParseWithClaims(tokenString, &TempTokenClaims{}, func(token *jwt.Token) (interface{}, error) {
+		return []byte(cfg.JWTAccessSecret), nil
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	if claims, ok := token.Claims.(*TempTokenClaims); ok && token.Valid {
+		return claims, nil
+	}
+
+	return nil, ErrInvalidToken
 }
 
 func CreateSession(db *sql.DB, req models.CreateSessionRequest) error {

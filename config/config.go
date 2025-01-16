@@ -11,9 +11,14 @@ import (
 )
 
 type Config struct {
-	DBConnectionUrl  string
-	JWTAccessSecret  string
-	JWTRefreshSecret string
+	DBConnectionUrl    string
+	JWTAccessSecret    string
+	JWTRefreshSecret   string
+	GitHubClientID     string
+	GitHubClientSecret string
+	GoogleClientID     string
+	GoogleClientSecret string
+	OAuthRedirectUrl   string
 }
 
 var (
@@ -59,9 +64,14 @@ func LoadConfig() *Config {
 		}
 
 		config = &Config{
-			DBConnectionUrl:  getEnv("DATABASE_URL"),
-			JWTAccessSecret:  getEnv("JWT_ACCESS_SECRET"),
-			JWTRefreshSecret: getEnv("JWT_REFRESH_SECRET"),
+			DBConnectionUrl:    getEnv("DATABASE_URL"),
+			JWTAccessSecret:    getEnv("JWT_ACCESS_SECRET"),
+			JWTRefreshSecret:   getEnv("JWT_REFRESH_SECRET"),
+			GitHubClientID:     getEnv("GITHUB_CLIENT_ID"),
+			GitHubClientSecret: getEnv("GITHUB_CLIENT_SECRET"),
+			GoogleClientID:     getEnv("GOOGLE_CLIENT_ID"),
+			GoogleClientSecret: getEnv("GOOGLE_CLIENT_SECRET"),
+			OAuthRedirectUrl:   getEnv("OAUTH_REDIRECT_URL"),
 		}
 	})
 	return config

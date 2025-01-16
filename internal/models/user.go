@@ -23,7 +23,7 @@ type User struct {
 	FullName       string         `json:"full_name" db:"full_name" validate:"required"`
 	FirstName      string         `json:"first_name" db:"first_name" validate:"required"`
 	LastName       string         `json:"last_name" db:"last_name" validate:"required"`
-	Email          string         `json:"email" db:"email" validate:"required,email"`
+	Email          *string        `json:"email" db:"email" validate:"required,email"`
 	Password       string         `json:"-" db:"password"`
 	Image          *string        `json:"image,omitempty" db:"image"`
 	Role           Role           `json:"role" db:"role" validate:"required,oneof=USER ADMIN"`
@@ -61,6 +61,16 @@ type CreateUserRequest struct {
 	Tags           []string     `json:"tags,omitempty"`
 	Website        *string      `json:"website,omitempty"`
 	GraduationDate *time.Time   `json:"graduation_date,omitempty" validate:"required"`
+}
+
+type CompleteOAuthRegistrationRequest struct {
+	TempToken      string       `json:"temp_token" validate:"required"`
+	Position       GDSCPosition `json:"position" validate:"required"`
+	Branch         GDSCBranch   `json:"branch" validate:"required"`
+	GraduationDate time.Time    `json:"graduation_date" validate:"required"`
+	FirstName      string       `json:"first_name" validate:"required"`
+	LastName       string       `json:"last_name" validate:"required"`
+	Email          string       `json:"email" validate:"required"`
 }
 
 type UpdateUserRequest struct {

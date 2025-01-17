@@ -15,8 +15,9 @@ func InitRoutes(e *echo.Echo, h *handlers.Handler) {
 	authGroup.PATCH("/refresh", h.RefreshUser)
 	authGroup.POST("/logout", h.LogoutUser)
 	authGroup.POST("/logoutAll", h.LogoutAll, auth.AuthMiddleware)
-	// authGroup.GET("/:provider/login", auth.OAuthLogin)
-	// authGroup.GET("/:provider/callback", auth.OAuthCallback)
+	authGroup.GET("/:provider/login", auth.OAuthLogin)
+	authGroup.GET("/:provider/callback", auth.OAuthCallback)
+	authGroup.POST("/complete-registration", auth.CompleteOAuthRegistration)
 
 	// User routes can be used called from User or Admin
 	apiUserGroup := e.Group("/user")

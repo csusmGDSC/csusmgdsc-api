@@ -12,7 +12,7 @@ type CreateUserTraditionalAuthRequest struct {
 }
 
 type CreateUserOAuthRequest struct {
-	Email    *string `json:"email"`
+	Email    *string `json:"email,omitempty"`
 	Provider *string `json:"provider,omitempty"`
 	AuthID   *string `json:"auth_id,omitempty"`
 	Image    *string `json:"image,omitempty"`

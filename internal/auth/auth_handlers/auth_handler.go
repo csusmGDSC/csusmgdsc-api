@@ -2,7 +2,6 @@ package auth_handlers
 
 import (
 	"database/sql"
-	"fmt"
 	"net/http"
 	"time"
 
@@ -310,12 +309,6 @@ func (h *OAuthHandler) OAuthCallback(c echo.Context) error {
 	if err != nil {
 		return c.JSON(http.StatusUnauthorized, map[string]string{"error": "Failed to authenticate"})
 	}
-
-	fmt.Println("ID: ", userData.ID)
-	fmt.Println("Name: ", userData.Name)
-	fmt.Println("Email: ", userData.Email)
-	fmt.Println("AvatarURL: ", *userData.AvatarURL)
-	fmt.Println("Provider: ", userData.Provider)
 
 	dbConn := h.DB.GetDB()
 	userRepo := auth_repositories.NewUserRepository(dbConn)

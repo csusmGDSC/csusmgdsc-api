@@ -23,7 +23,7 @@ func NewUserRepository(db *sql.DB) *UserRepository {
 func (r *UserRepository) Create(user *models.User) error {
 	query := `
 		INSERT INTO users (
-			id, full_name, email, password, provider, auth_id,created_at, updated_at, is_onboarded
+			id, full_name, email, password, provider, auth_id, created_at, updated_at, is_onboarded
 		) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
 	`
 

@@ -41,6 +41,7 @@ type User struct {
 	UpdatedAt      time.Time      `json:"updated_at" db:"updated_at"`
 	Provider       *string        `json:"provider" db:"provider"`
 	AuthID         *string        `json:"auth_id" db:"auth_id"`
+	IsOnboarded    bool           `json:"is_onboarded" db:"is_onboarded"`
 }
 
 type CompleteOAuthRegistrationRequest struct {

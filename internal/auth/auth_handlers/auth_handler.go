@@ -2,6 +2,7 @@ package auth_handlers
 
 import (
 	"database/sql"
+	"fmt"
 	"net/http"
 	"time"
 
@@ -9,14 +10,14 @@ import (
 	"github.com/csusmGDSC/csusmgdsc-api/internal/auth/auth_models"
 	"github.com/csusmGDSC/csusmgdsc-api/internal/auth/auth_repositories"
 	"github.com/csusmGDSC/csusmgdsc-api/internal/auth/auth_utils"
-	"github.com/csusmGDSC/csusmgdsc-api/internal/db"
 	"github.com/csusmGDSC/csusmgdsc-api/internal/models"
 	"github.com/go-playground/validator"
 	"github.com/labstack/echo/v4"
 )
 
+// Register User from the registration page
 func (h *OAuthHandler) RegisterUser(c echo.Context) error {
-	var req auth_models.CreateUserRequest
+	var req auth_models.CreateUserTraditionalAuthRequest
 	if err := c.Bind(&req); err != nil {
 		return c.JSON(http.StatusBadRequest, map[string]string{"error": "Invalid request format"})
 	}
@@ -31,13 +32,10 @@ func (h *OAuthHandler) RegisterUser(c echo.Context) error {
 		})
 	}
 
-	if req.Password == nil && req.Provider == nil {
-		return c.JSON(http.StatusBadRequest, map[string]string{"error": "Password or provider are required"})
-	}
-
 	dbConn := h.DB.GetDB()
 
-	user, err := auth_utils.RegisterUserToDatabase(dbConn, req)
+	// encapsulate the registration logic, used in OAuthCallback
+	user, err := auth_utils.RegisterUserTraditionalAuthToDatabase(dbConn, req)
 	if err != nil {
 		if err == auth_utils.ErrUserExists {
 			return c.JSON(http.StatusConflict, map[string]string{"error": "Email already registered"})
@@ -313,36 +311,41 @@ func (h *OAuthHandler) OAuthCallback(c echo.Context) error {
 		return c.JSON(http.StatusUnauthorized, map[string]string{"error": "Failed to authenticate"})
 	}
 
-	dbConn := db.GetInstance()
-	defer dbConn.Close()
-	userRepo := auth_repositories.NewUserRepository(dbConn.GetDB())
+	fmt.Println("ID: ", userData.ID)
+	fmt.Println("Name: ", userData.Name)
+	fmt.Println("Email: ", userData.Email)
+	fmt.Println("AvatarURL: ", *userData.AvatarURL)
+	fmt.Println("Provider: ", userData.Provider)
+
+	dbConn := h.DB.GetDB()
+	userRepo := auth_repositories.NewUserRepository(dbConn)
 
 	var user *models.User
 	// Check if user exists
-	if userData.Email != nil {
-		user, _ = userRepo.GetByEmail(*userData.Email)
+	if userData.ID != "" {
+		user, _ = userRepo.GetByAuthID(userData.ID)
 	}
 
-	if userData.Email == nil || user == nil {
-		// User doesn't exist - generate temporary registration token
-		tempToken, err := auth_utils.GenerateTemporaryToken(userData)
-		if err != nil {
-			return c.JSON(http.StatusInternalServerError, map[string]string{"error": "Failed to generate registration token"})
+	if user == nil {
+		// User doesn't exist - register the user
+		req := &auth_models.CreateUserOAuthRequest{
+			Email:    userData.Email,
+			Provider: &userData.Provider,
+			AuthID:   &userData.ID,
+			Image:    userData.AvatarURL,
+			Name:     &userData.Name,
 		}
-		return c.JSON(http.StatusOK, map[string]interface{}{
-			"status":     "registration_required",
-			"temp_token": tempToken,
-			"user_data": map[string]interface{}{
-				"email":      userData.Email,
-				"name":       userData.Name,
-				"avatar_url": userData.AvatarURL,
-				"provider":   userData.Provider,
-			},
-			"message": "Additional information required to complete registration",
-		})
+
+		user, err = auth_utils.RegisterUserOAuthToDatabase(dbConn, *req)
+		if err != nil {
+			if err == auth_utils.ErrUserExists {
+				return c.JSON(http.StatusConflict, map[string]string{"error": "Email already registered"})
+			}
+			return c.JSON(http.StatusInternalServerError, map[string]string{"error": "Registration failed: " + err.Error()})
+		}
 	}
 
-	// User exists - generate tokens
+	// Login the User
 	// TODO: This logic is the same as in the LoginUser handler
 	// Refactor this to a common function
 	accessToken, err := auth_utils.GenerateJWT(user.ID, user.Role)
@@ -366,7 +369,7 @@ func (h *OAuthHandler) OAuthCallback(c echo.Context) error {
 		UserAgent: userAgent,
 	}
 
-	err = auth_utils.CreateSession(dbConn.GetDB(), *sessionReq)
+	err = auth_utils.CreateSession(dbConn, *sessionReq)
 	if err != nil {
 		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "Failed to create new session"})
 	}

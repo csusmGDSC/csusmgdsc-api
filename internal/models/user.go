@@ -20,15 +20,15 @@ func (r Role) String() string {
 
 type User struct {
 	ID             uuid.UUID      `json:"id" db:"id"`
-	FullName       string         `json:"full_name" db:"full_name" validate:"required"`
-	FirstName      string         `json:"first_name" db:"first_name" validate:"required"`
-	LastName       string         `json:"last_name" db:"last_name" validate:"required"`
-	Email          *string        `json:"email" db:"email" validate:"required,email"`
-	Password       string         `json:"-" db:"password"`
+	FullName       *string        `json:"full_name" db:"full_name"`
+	FirstName      *string        `json:"first_name" db:"first_name"`
+	LastName       *string        `json:"last_name" db:"last_name"`
+	Email          string         `json:"email" db:"email" validate:"required,email"`
+	Password       *string        `json:"-" db:"password"`
 	Image          *string        `json:"image,omitempty" db:"image"`
-	Role           Role           `json:"role" db:"role" validate:"required,oneof=USER ADMIN"`
-	Position       GDSCPosition   `json:"position" db:"position" validate:"required"`
-	Branch         GDSCBranch     `json:"branch" db:"branch" validate:"required"`
+	Role           *Role          `json:"role" db:"role"`
+	Position       *GDSCPosition  `json:"position" db:"position"`
+	Branch         *GDSCBranch    `json:"branch" db:"branch"`
 	Github         *string        `json:"github,omitempty" db:"github"`
 	Linkedin       *string        `json:"linkedin,omitempty" db:"linkedin"`
 	Instagram      *string        `json:"instagram,omitempty" db:"instagram"`
@@ -43,26 +43,6 @@ type User struct {
 	AuthID         *string        `json:"auth_id" db:"auth_id"`
 }
 
-type CreateUserRequest struct {
-	FullName       string       `json:"full_name,omitempty"`
-	FirstName      string       `json:"first_name" validate:"required"`
-	LastName       string       `json:"last_name" validate:"required"`
-	Email          string       `json:"email" validate:"required,email"`
-	Password       string       `json:"password" validate:"required,min=8"`
-	Role           Role         `json:"role,omitempty" validate:"required,oneof=USER ADMIN"`
-	Image          *string      `json:"image,omitempty"`
-	Position       GDSCPosition `json:"position" validate:"required"`
-	Branch         GDSCBranch   `json:"branch" validate:"required"`
-	Github         *string      `json:"github,omitempty"`
-	Linkedin       *string      `json:"linkedin,omitempty"`
-	Instagram      *string      `json:"instagram,omitempty"`
-	Discord        *string      `json:"discord,omitempty"`
-	Bio            *string      `json:"bio,omitempty"`
-	Tags           []string     `json:"tags,omitempty"`
-	Website        *string      `json:"website,omitempty"`
-	GraduationDate *time.Time   `json:"graduation_date,omitempty" validate:"required"`
-}
-
 type CompleteOAuthRegistrationRequest struct {
 	TempToken      string       `json:"temp_token" validate:"required"`
 	Position       GDSCPosition `json:"position" validate:"required"`
@@ -71,30 +51,4 @@ type CompleteOAuthRegistrationRequest struct {
 	FirstName      string       `json:"first_name" validate:"required"`
 	LastName       string       `json:"last_name" validate:"required"`
 	Email          string       `json:"email" validate:"required"`
-}
-
-type UpdateUserRequest struct {
-	FirstName      *string       `json:"first_name,omitempty"`
-	LastName       *string       `json:"last_name,omitempty"`
-	Image          *string       `json:"image,omitempty"`
-	Position       *GDSCPosition `json:"position,omitempty"`
-	Branch         *GDSCBranch   `json:"branch,omitempty"`
-	Github         *string       `json:"github,omitempty"`
-	Linkedin       *string       `json:"linkedin,omitempty"`
-	Instagram      *string       `json:"instagram,omitempty"`
-	Discord        *string       `json:"discord,omitempty"`
-	Bio            *string       `json:"bio,omitempty"`
-	Tags           []string      `json:"tags,omitempty"`
-	Website        *string       `json:"website,omitempty"`
-	GraduationDate *time.Time    `json:"graduation_date,omitempty"`
-}
-
-type LoginRequest struct {
-	Email    string `json:"email" validate:"required,email"`
-	Password string `json:"password" validate:"required"`
-}
-
-type AuthResponse struct {
-	Token string `json:"token"`
-	User  User   `json:"user"`
 }

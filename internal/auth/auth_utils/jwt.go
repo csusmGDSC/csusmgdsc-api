@@ -1,11 +1,13 @@
-package auth
+package auth_utils
 
 import (
 	"database/sql"
 	"time"
 
 	"github.com/csusmGDSC/csusmgdsc-api/config"
-	"github.com/csusmGDSC/csusmgdsc-api/internal/db/repositories"
+	"github.com/csusmGDSC/csusmgdsc-api/internal/auth"
+	"github.com/csusmGDSC/csusmgdsc-api/internal/auth/auth_models"
+	"github.com/csusmGDSC/csusmgdsc-api/internal/auth/auth_repositories"
 	"github.com/csusmGDSC/csusmgdsc-api/internal/models"
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/google/uuid"
@@ -18,7 +20,7 @@ var (
 )
 
 type TempTokenClaims struct {
-	OAuthUserData *OAuthUserData `json:"oauth_data"`
+	OAuthUserData *auth.OAuthUserData `json:"oauth_data"`
 	jwt.RegisteredClaims
 }
 
@@ -29,13 +31,17 @@ type Claims struct {
 	jwt.RegisteredClaims
 }
 
-func GenerateJWT(userID uuid.UUID, role models.Role) (string, error) {
+func GenerateJWT(userID uuid.UUID, role *models.Role) (string, error) {
 	claims := &Claims{
 		UserID: userID.String(),
-		Role:   role.String(),
+		Role:   "not set",
 		RegisteredClaims: jwt.RegisteredClaims{
 			ExpiresAt: jwt.NewNumericDate(time.Now().Add(AccessTokenExpiry)),
 		},
+	}
+
+	if role != nil {
+		claims.Role = role.String()
 	}
 
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
@@ -44,24 +50,30 @@ func GenerateJWT(userID uuid.UUID, role models.Role) (string, error) {
 	return signedString, err
 }
 
-func GenerateRefreshToken(userID uuid.UUID, role models.Role) (string, time.Time, time.Time, error) {
+func GenerateRefreshToken(userID uuid.UUID, role *models.Role) (string, time.Time, time.Time, error) {
 	issuedAt := jwt.NewNumericDate(time.Now())
 	expiresAt := jwt.NewNumericDate(time.Now().Add(RefreshTokenExpiry))
+
 	claims := &Claims{
 		UserID: userID.String(),
-		Role:   role.String(),
+		Role:   "not set",
 		RegisteredClaims: jwt.RegisteredClaims{
 			IssuedAt:  issuedAt,
 			ExpiresAt: expiresAt,
 		},
 	}
+
+	if role != nil {
+		claims.Role = role.String()
+	}
+
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
 	cfg := config.LoadConfig()
 	signedString, err := token.SignedString([]byte(cfg.JWTRefreshSecret))
 	return signedString, issuedAt.Time, expiresAt.Time, err
 }
 
-func GenerateTemporaryToken(oauthData *OAuthUserData) (string, error) {
+func GenerateTemporaryToken(oauthData *auth.OAuthUserData) (string, error) {
 	claims := &TempTokenClaims{
 		OAuthUserData: oauthData,
 		RegisteredClaims: jwt.RegisteredClaims{
@@ -94,8 +106,8 @@ func ValidateTemporaryToken(tokenString string) (*TempTokenClaims, error) {
 	return nil, ErrInvalidToken
 }
 
-func CreateSession(db *sql.DB, req models.CreateSessionRequest) error {
-	refreshTokenRepo := repositories.NewRefreshTokenRepository(db)
+func CreateSession(db *sql.DB, req auth_models.CreateSessionRequest) error {
+	refreshTokenRepo := auth_repositories.NewRefreshTokenRepository(db)
 	err := refreshTokenRepo.Create(&req)
 	if err != nil {
 		return err

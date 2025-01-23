@@ -1,9 +1,9 @@
-package repositories
+package auth_repositories
 
 import (
 	"database/sql"
 
-	"github.com/csusmGDSC/csusmgdsc-api/internal/models"
+	"github.com/csusmGDSC/csusmgdsc-api/internal/auth/auth_models"
 )
 
 type RefreshTokenRepository struct {
@@ -14,7 +14,7 @@ func NewRefreshTokenRepository(db *sql.DB) *RefreshTokenRepository {
 	return &RefreshTokenRepository{db: db}
 }
 
-func (r *RefreshTokenRepository) Create(refresh_token *models.CreateSessionRequest) error {
+func (r *RefreshTokenRepository) Create(refresh_token *auth_models.CreateSessionRequest) error {
 	query := `
 	    INSERT INTO refresh_tokens(
 		user_id, token, issued_at, expires_at, ip_address, user_agent
@@ -33,8 +33,8 @@ func (r *RefreshTokenRepository) Create(refresh_token *models.CreateSessionReque
 	return err
 }
 
-func (r *RefreshTokenRepository) GetByToken(cookieToken string) (*models.RefreshToken, error) {
-	refreshToken := &models.RefreshToken{}
+func (r *RefreshTokenRepository) GetByToken(cookieToken string) (*auth_models.RefreshToken, error) {
+	refreshToken := &auth_models.RefreshToken{}
 	query := `
 	    SELECT token, user_id, expires_at FROM refresh_tokens WHERE token = $1
 	`

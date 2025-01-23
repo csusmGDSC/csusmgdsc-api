@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/csusmGDSC/csusmgdsc-api/internal/auth"
+	"github.com/csusmGDSC/csusmgdsc-api/internal/auth/auth_handlers"
 	"github.com/csusmGDSC/csusmgdsc-api/internal/db"
 	"github.com/csusmGDSC/csusmgdsc-api/internal/handlers"
 	"github.com/csusmGDSC/csusmgdsc-api/routes"
@@ -20,14 +21,18 @@ func main() {
 	dbConn := db.GetInstance()
 	defer dbConn.Close()
 
-	auth.InitOAuth()
-
 	e := echo.New()
-	h := handlers.NewHandler(dbConn)
+
+	// Initialize OAuth
+	auth.InitOAuth()
+	authHandler := auth_handlers.NewOAuthHandler(dbConn)
+	routes.InitOAuthRoutes(e, authHandler)
 
 	e.Use(middleware.Logger())
 	e.Use(middleware.Recover())
 
+	// Intialize API routes
+	h := handlers.NewHandler(dbConn)
 	routes.InitRoutes(e, h)
 
 	// Graceful shutdown

@@ -23,7 +23,7 @@ func NewUserRepository(db *sql.DB) *UserRepository {
 func (r *UserRepository) Create(user *models.User) error {
 	query := `
 		INSERT INTO users (
-			id, full_name, email, password, provider, auth_id,created_at, updated_at
+			id, full_name, email, password, provider, auth_id,created_at, updated_at, is_onboarded
 		) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
 	`
 
@@ -227,7 +227,7 @@ func (r *UserRepository) GetByAuthID(authID string) (*models.User, error) {
 		SELECT id, full_name, first_name, last_name, email, password,
 		 	role, position, branch, image, github,
 			linkedin, instagram, discord, bio, tags, website,
-			graduation_date, created_at, updated_at, provider, auth_id
+			graduation_date, created_at, updated_at, provider, auth_id, is_onboarded
 		FROM users
 		WHERE auth_id = $1
 	`
@@ -255,6 +255,7 @@ func (r *UserRepository) GetByAuthID(authID string) (*models.User, error) {
 		&user.UpdatedAt,
 		&user.Provider,
 		&user.AuthID,
+		&user.IsOnboarded,
 	)
 
 	if err != nil {

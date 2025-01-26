@@ -6,11 +6,17 @@ import (
 	"github.com/csusmGDSC/csusmgdsc-api/internal/models"
 )
 
-type CreateUserRequest struct {
-	Email    string  `json:"email" validate:"required,email"`
-	Password *string `json:"password,omitempty"`
+type CreateUserTraditionalAuthRequest struct {
+	Email    *string `json:"email" validate:"required,email"`
+	Password *string `json:"password,omitempty" validate:"required"`
+}
+
+type CreateUserOAuthRequest struct {
+	Email    *string `json:"email,omitempty"`
 	Provider *string `json:"provider,omitempty"`
 	AuthID   *string `json:"auth_id,omitempty"`
+	Image    *string `json:"image,omitempty"`
+	Name     *string `json:"name,omitempty"`
 }
 
 type LoginRequest struct {

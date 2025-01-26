@@ -41,14 +41,5 @@ type User struct {
 	UpdatedAt      time.Time      `json:"updated_at" db:"updated_at"`
 	Provider       *string        `json:"provider" db:"provider"`
 	AuthID         *string        `json:"auth_id" db:"auth_id"`
-}
-
-type CompleteOAuthRegistrationRequest struct {
-	TempToken      string       `json:"temp_token" validate:"required"`
-	Position       GDSCPosition `json:"position" validate:"required"`
-	Branch         GDSCBranch   `json:"branch" validate:"required"`
-	GraduationDate time.Time    `json:"graduation_date" validate:"required"`
-	FirstName      string       `json:"first_name" validate:"required"`
-	LastName       string       `json:"last_name" validate:"required"`
-	Email          string       `json:"email" validate:"required"`
+	IsOnboarded    bool           `json:"is_onboarded" db:"is_onboarded"`
 }

@@ -19,10 +19,10 @@ var (
 	ErrInvalidToken       = errors.New("invalid token")
 )
 
-func RegisterUserToDatabase(db *sql.DB, req auth_models.CreateUserRequest) (*models.User, error) {
+func RegisterUserTraditionalAuthToDatabase(db *sql.DB, req auth_models.CreateUserTraditionalAuthRequest) (*models.User, error) {
 	userRepo := auth_repositories.NewUserRepository(db)
 
-	exists, err := userRepo.EmailExists(req.Email)
+	exists, err := userRepo.EmailExists(*req.Email)
 	if err != nil {
 		return nil, err
 	}
@@ -30,7 +30,7 @@ func RegisterUserToDatabase(db *sql.DB, req auth_models.CreateUserRequest) (*mod
 		return nil, ErrUserExists
 	}
 
-	if req.Password != nil && req.AuthID == nil && req.Provider == nil {
+	if req.Password != nil {
 		hashedPassword, err := HashPassword(*req.Password)
 		if err != nil {
 			return nil, err
@@ -39,13 +39,12 @@ func RegisterUserToDatabase(db *sql.DB, req auth_models.CreateUserRequest) (*mod
 	}
 
 	user := &models.User{
-		ID:        uuid.New(),
-		Email:     req.Email,
-		Password:  req.Password,
-		Provider:  req.Provider,
-		AuthID:    req.AuthID,
-		CreatedAt: time.Now(),
-		UpdatedAt: time.Now(),
+		ID:          uuid.New(),
+		Email:       *req.Email,
+		Password:    req.Password,
+		CreatedAt:   time.Now(),
+		UpdatedAt:   time.Now(),
+		IsOnboarded: false,
 	}
 
 	err = userRepo.Create(user)

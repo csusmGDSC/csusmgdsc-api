@@ -2,12 +2,59 @@ package auth_utils
 
 import (
 	"context"
+	"database/sql"
 	"encoding/json"
 	"fmt"
+	"time"
 
 	"github.com/csusmGDSC/csusmgdsc-api/internal/auth"
+	"github.com/csusmGDSC/csusmgdsc-api/internal/auth/auth_models"
+	"github.com/csusmGDSC/csusmgdsc-api/internal/auth/auth_repositories"
+	"github.com/csusmGDSC/csusmgdsc-api/internal/models"
+	"github.com/google/uuid"
 	"golang.org/x/oauth2"
 )
+
+func RegisterUserOAuthToDatabase(db *sql.DB, req auth_models.CreateUserOAuthRequest) (*models.User, error) {
+	userRepo := auth_repositories.NewUserRepository(db)
+
+	if req.AuthID == nil {
+		return nil, fmt.Errorf("auth_id is required")
+	}
+
+	exists, err := userRepo.AuthIDExists(*req.AuthID)
+	if err != nil {
+		return nil, err
+	}
+	if exists {
+		return nil, ErrUserExists
+	}
+
+	email := "not set"
+	if req.Email != nil {
+		email = *req.Email
+	}
+
+	user := &models.User{
+		ID:          uuid.New(),
+		Email:       email,
+		Password:    nil,
+		Provider:    req.Provider,
+		AuthID:      req.AuthID,
+		Image:       req.Image,
+		FullName:    req.Name,
+		CreatedAt:   time.Now(),
+		UpdatedAt:   time.Now(),
+		IsOnboarded: false,
+	}
+
+	err = userRepo.Create(user)
+	if err != nil {
+		return nil, err
+	}
+
+	return user, nil
+}
 
 // GetOAuthURL generates an OAuth URL for the provider
 func GetOAuthURL(provider string) (string, error) {

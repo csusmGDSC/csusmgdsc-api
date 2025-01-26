@@ -2,7 +2,9 @@ package auth_handlers
 
 import (
 	"database/sql"
+	"fmt"
 	"net/http"
+	"net/url"
 	"time"
 
 	"github.com/csusmGDSC/csusmgdsc-api/config"
@@ -377,8 +379,16 @@ func (h *OAuthHandler) OAuthCallback(c echo.Context) error {
 	cookie.Expires = expiresAt
 	c.SetCookie(cookie)
 
-	return c.JSON(http.StatusOK, map[string]interface{}{
-		"accessToken": accessToken,
-		"user":        user,
-	})
+	frontendURL := "https://gdsc-csusm.com"
+
+	if !user.IsOnboarded {
+		frontendURL = frontendURL + "/onboarding"
+	}
+
+	redirectURL := fmt.Sprintf("%s?token=%s",
+		frontendURL,
+		url.QueryEscape(accessToken),
+	)
+
+	return c.Redirect(http.StatusTemporaryRedirect, redirectURL)
 }

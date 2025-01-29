@@ -8,6 +8,8 @@ import (
 	"sync"
 
 	"github.com/joho/godotenv"
+	"github.com/labstack/echo/v4"
+	"github.com/labstack/echo/v4/middleware"
 )
 
 type Config struct {
@@ -19,6 +21,7 @@ type Config struct {
 	GoogleClientID     string
 	GoogleClientSecret string
 	OAuthRedirectUrl   string
+	FrontendOrigin     string
 }
 
 var (
@@ -72,14 +75,26 @@ func LoadConfig() *Config {
 			GoogleClientID:     getEnv("GOOGLE_CLIENT_ID"),
 			GoogleClientSecret: getEnv("GOOGLE_CLIENT_SECRET"),
 			OAuthRedirectUrl:   getEnv("OAUTH_REDIRECT_URL"),
+			FrontendOrigin:     getEnv("FRONTEND_ORIGIN", "http://localhost:8081"),
 		}
 	})
 	return config
 }
 
-func getEnv(key string) string {
+func getEnv(key string, defaultValue ...string) string {
 	if value, exists := os.LookupEnv(key); exists {
 		return value
 	}
-	return ""
+	return defaultValue[0]
+}
+
+// Added CORS for frontend, need to allow frontend origin otherwise requests get rejected
+func InitCORS(e *echo.Echo) {
+	cfg := LoadConfig()
+	e.Use(middleware.CORSWithConfig(middleware.CORSConfig{
+		AllowOrigins:     []string{cfg.FrontendOrigin}, // Explicitly allow frontend origin
+		AllowMethods:     []string{echo.GET, echo.POST, echo.PUT, echo.DELETE, echo.PATCH},
+		AllowHeaders:     []string{echo.HeaderOrigin, echo.HeaderContentType, echo.HeaderAccept, "Authorization"},
+		AllowCredentials: true, // Important: Allow credentials to send over the cookie
+	}))
 }

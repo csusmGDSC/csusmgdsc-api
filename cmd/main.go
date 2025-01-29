@@ -8,6 +8,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/csusmGDSC/csusmgdsc-api/config"
 	"github.com/csusmGDSC/csusmgdsc-api/internal/auth"
 	"github.com/csusmGDSC/csusmgdsc-api/internal/auth/auth_handlers"
 	"github.com/csusmGDSC/csusmgdsc-api/internal/db"
@@ -21,12 +22,6 @@ func main() {
 	dbConn := db.GetInstance()
 	defer dbConn.Close()
 
-	frontendOrigin := os.Getenv("FRONTEND_ORIGIN")
-
-	if frontendOrigin == "" {
-		frontendOrigin = "http://localhost:8081" // Default frontend origin
-	}
-
 	e := echo.New()
 
 	// Initialize OAuth
@@ -37,13 +32,7 @@ func main() {
 	e.Use(middleware.Logger())
 	e.Use(middleware.Recover())
 
-	// Added CORS for frontend, need to allow frontend origin otherwise requests get rejected
-	e.Use(middleware.CORSWithConfig(middleware.CORSConfig{
-		AllowOrigins: []string{frontendOrigin}, // Explicitly allow frontend origin
-		AllowMethods: []string{echo.GET, echo.POST, echo.PUT, echo.DELETE, echo.PATCH},
-		AllowHeaders: []string{echo.HeaderOrigin, echo.HeaderContentType, echo.HeaderAccept, "Authorization"},
-		AllowCredentials: true, // Important: Allow credentials to send over the cookie
-	}))
+	config.InitCORS(e)
 
 	// Intialize API routes
 	h := handlers.NewHandler(dbConn)

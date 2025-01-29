@@ -3,6 +3,7 @@ package auth_repositories
 import (
 	"database/sql"
 	"errors"
+	"strconv"
 	"strings"
 	"time"
 
@@ -339,4 +340,94 @@ func (r *UserRepository) DeleteByID(userID string) error {
 	}
 
 	return nil
+}
+
+func (r *UserRepository) GetAll(pageStr string, limitStr string) (*auth_models.AllUsersResponse, error) {
+	// Convrt string parameters to integers with default values
+	page, err := strconv.Atoi(pageStr)
+	if err != nil || page < 1 {
+		page = 1
+	}
+
+	limit, err := strconv.Atoi(limitStr)
+	if err != nil || limit < 1 {
+		limit = 10
+	}
+
+	// Calculate offset
+	offset := (page - 1) * limit
+
+	query := `
+		SELECT 
+			id, 
+			email, 
+			password,
+			full_name,
+			first_name,
+			last_name,
+			image,
+			is_onboarded,
+			role,
+			provider,
+			auth_id,
+			created_at,
+			updated_at
+		FROM users
+		ORDER BY created_at DESC
+		LIMIT $1 OFFSET $2
+	`
+
+	rows, err := r.db.Query(query, limit, offset)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var users []*models.User
+	for rows.Next() {
+		var user models.User
+		err := rows.Scan(
+			&user.ID,
+			&user.Email,
+			&user.Password,
+			&user.FullName,
+			&user.FirstName,
+			&user.LastName,
+			&user.Image,
+			&user.IsOnboarded,
+			&user.Role,
+			&user.Provider,
+			&user.AuthID,
+			&user.CreatedAt,
+			&user.UpdatedAt,
+		)
+		if err != nil {
+			return nil, err
+		}
+		users = append(users, &user)
+	}
+	if err = rows.Err(); err != nil {
+		return nil, err
+	}
+
+	totalCount, err := r.GetTotalCount()
+	if err != nil {
+		return nil, err
+	}
+
+	return &auth_models.AllUsersResponse{
+		Users:      users,
+		TotalCount: totalCount,
+		Page:       page,
+		Limit:      limit,
+	}, nil
+}
+
+func (r *UserRepository) GetTotalCount() (int, error) {
+	var count int
+	err := r.db.QueryRow("SELECT COUNT(*) FROM users").Scan(&count)
+	if err != nil {
+		return 0, err
+	}
+	return count, nil
 }

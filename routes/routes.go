@@ -8,7 +8,13 @@ import (
 )
 
 func InitRoutes(e *echo.Echo, h *handlers.Handler) {
-	e.POST("/events", h.InsertEventHandler)
+	e.GET("/users", h.GetUsersHandler) // supports pagination ?page=x&limit=y
+	e.GET("/users/:id", h.GetUserByIDHandler)
+
+	adminGroup := e.Group("/admin")
+	adminGroup.Use(auth_middleware.AuthMiddleware)
+	adminGroup.POST("/events", h.InsertEventHandler)
+
 }
 
 func InitOAuthRoutes(e *echo.Echo, h *auth_handlers.OAuthHandler) {
@@ -22,4 +28,5 @@ func InitOAuthRoutes(e *echo.Echo, h *auth_handlers.OAuthHandler) {
 	authGroup.GET("/:provider/callback", h.OAuthCallback)
 	authGroup.PUT("/update/:id", h.UpdateUser, auth_middleware.AuthMiddleware)
 	authGroup.DELETE("/delete/:id", h.DeleteUser, auth_middleware.AuthMiddleware)
+	authGroup.GET("/me", h.GetUserByIDHandler, auth_middleware.AuthMiddleware)
 }

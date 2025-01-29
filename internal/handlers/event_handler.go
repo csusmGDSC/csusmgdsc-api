@@ -13,6 +13,11 @@ import (
 )
 
 func (h *Handler) InsertEventHandler(c echo.Context) error {
+	userRole, ok := c.Get("user_role").(string)
+	if !ok || userRole != "ADMIN" {
+		return c.JSON(http.StatusUnauthorized, map[string]string{"error": "Insufficient permissions"})
+	}
+
 	var event models.Event
 	// Bind JSON request body to the Event struct
 	if err := c.Bind(&event); err != nil {

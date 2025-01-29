@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"database/sql"
 	"log"
 	"net/http"
 	"time"
@@ -41,11 +42,62 @@ func (h *Handler) InsertEventHandler(c echo.Context) error {
 	event.UpdatedAt = time.Now()
 
 	dbConn := h.DB.GetDB()
+	eventRepo := repositories.NewEventRepository(dbConn)
 
-	if err := repositories.InsertEvent(dbConn, event); err != nil {
+	if err := eventRepo.InsertEvent(dbConn, event); err != nil {
 		log.Println("Insert event error:", err)
 		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "Failed to insert event"})
 	}
 
 	return c.JSON(http.StatusCreated, map[string]string{"message": "Event created successfully", "eventID": event.ID.String()})
+}
+
+func (h *Handler) GetEventsHandler(c echo.Context) error {
+	// Get pagination parameters from query
+	page := c.QueryParam("page")
+	limit := c.QueryParam("limit")
+	if page == "" {
+		page = "1"
+	}
+	if limit == "" {
+		limit = "10"
+	}
+
+	dbConn := h.DB.GetDB()
+	eventRepo := repositories.NewEventRepository(dbConn)
+
+	response, err := eventRepo.GetAll(page, limit)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return c.JSON(http.StatusNotFound, map[string]string{"error": "No events found"})
+		}
+		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "Failed to get events: " + err.Error()})
+	}
+
+	return c.JSON(http.StatusOK, response)
+}
+
+func (h *Handler) GetEventByIDHandler(c echo.Context) error {
+	eventIDStr := c.Param("id")
+	if eventIDStr == "" {
+		return c.JSON(http.StatusBadRequest, map[string]string{"error": "Event ID is required"})
+	}
+
+	dbConn := h.DB.GetDB()
+	eventRepo := repositories.NewEventRepository(dbConn)
+
+	eventID, err := uuid.Parse(eventIDStr)
+	if err != nil {
+		return c.JSON(http.StatusBadRequest, map[string]string{"error": "Invalid event ID"})
+	}
+
+	event, err := eventRepo.GetByID(eventID)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return c.JSON(http.StatusNotFound, map[string]string{"error": "Event not found"})
+		}
+		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "Failed to get event: " + err.Error()})
+	}
+
+	return c.JSON(http.StatusOK, event)
 }

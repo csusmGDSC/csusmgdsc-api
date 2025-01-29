@@ -10,6 +10,8 @@ import (
 func InitRoutes(e *echo.Echo, h *handlers.Handler) {
 	e.GET("/users", h.GetUsersHandler) // supports pagination ?page=x&limit=y
 	e.GET("/users/:id", h.GetUserByIDHandler)
+	e.GET("/events", h.GetEventsHandler) // supports pagination ?page=x&limit=y
+	e.GET("/events/:id", h.GetEventByIDHandler)
 
 	adminGroup := e.Group("/admin")
 	adminGroup.Use(auth_middleware.AuthMiddleware)

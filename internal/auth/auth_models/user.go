@@ -44,3 +44,10 @@ type UpdateUserRequest struct {
 	Website        *string              `json:"website,omitempty"`
 	GraduationDate *time.Time           `json:"graduation_date,omitempty"`
 }
+
+type AllUsersResponse struct {
+	Users      []*models.User `json:"users"`
+	TotalCount int            `json:"totalCount"`
+	Page       int            `json:"page"`
+	Limit      int            `json:"limit"`
+}

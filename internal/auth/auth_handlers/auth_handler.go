@@ -13,6 +13,7 @@ import (
 	"github.com/csusmGDSC/csusmgdsc-api/internal/auth/auth_utils"
 	"github.com/csusmGDSC/csusmgdsc-api/internal/models"
 	"github.com/go-playground/validator"
+	"github.com/google/uuid"
 	"github.com/labstack/echo/v4"
 )
 
@@ -391,4 +392,30 @@ func (h *OAuthHandler) OAuthCallback(c echo.Context) error {
 	)
 
 	return c.Redirect(http.StatusTemporaryRedirect, redirectURL)
+}
+
+func (h *OAuthHandler) GetUserByIDHandler(c echo.Context) error {
+	userIDStr, ok := c.Get("user_id").(string)
+	if !ok || userIDStr == "" {
+		return c.JSON(http.StatusUnauthorized, map[string]string{"error": "Unauthorized"})
+	}
+
+	userID, err := uuid.Parse(userIDStr)
+	if err != nil {
+		return c.JSON(http.StatusBadRequest, map[string]string{"error": "Invalid user ID"})
+	}
+
+	dbConn := h.DB.GetDB()
+	userRepo := auth_repositories.NewUserRepository(dbConn)
+
+	user, err := userRepo.GetByID(userID)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return c.JSON(http.StatusNotFound, map[string]string{"error": "User not found"})
+		}
+		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "Failed to get user"})
+	}
+
+	user.Password = nil
+	return c.JSON(http.StatusOK, user)
 }

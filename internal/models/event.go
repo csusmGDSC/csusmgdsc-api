@@ -31,6 +31,13 @@ type Event struct {
 	CreatedBy        *uuid.UUID  `json:"createdBy,omitempty"`
 }
 
+type AllEventsResponse struct {
+	Events     []*Event `json:"events"`
+	TotalCount int      `json:"totalCount"`
+	Page       int      `json:"page"`
+	Limit      int      `json:"limit"`
+}
+
 type CSUSMRoom struct {
 	Building string   `json:"building"`
 	Room     int      `json:"room"`

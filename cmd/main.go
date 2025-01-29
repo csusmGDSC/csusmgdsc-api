@@ -8,6 +8,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/csusmGDSC/csusmgdsc-api/config"
 	"github.com/csusmGDSC/csusmgdsc-api/internal/auth"
 	"github.com/csusmGDSC/csusmgdsc-api/internal/auth/auth_handlers"
 	"github.com/csusmGDSC/csusmgdsc-api/internal/db"
@@ -30,6 +31,8 @@ func main() {
 
 	e.Use(middleware.Logger())
 	e.Use(middleware.Recover())
+
+	config.InitCORS(e)
 
 	// Intialize API routes
 	h := handlers.NewHandler(dbConn)

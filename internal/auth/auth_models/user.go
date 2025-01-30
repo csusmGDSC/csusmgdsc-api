@@ -43,6 +43,7 @@ type UpdateUserRequest struct {
 	Tags           []string             `json:"tags,omitempty"`
 	Website        *string              `json:"website,omitempty"`
 	GraduationDate *time.Time           `json:"graduation_date,omitempty"`
+	IsOnboarded    *bool                `json:"is_onboarded,omitempty"`
 }
 
 type AllUsersResponse struct {

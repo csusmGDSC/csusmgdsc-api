@@ -117,12 +117,13 @@ func (r *UserRepository) Update(userID string, req auth_models.UpdateUserRequest
             tags = $11,
             website = $12,
             graduation_date = $13,
-            updated_at = $14
-        WHERE id = $15
+            updated_at = $14,
+			is_onboarded = $15
+        WHERE id = $16
         RETURNING id, full_name, first_name, last_name, email, image,
 				role, position, branch, github, linkedin,
                 instagram, discord, bio, tags, website, graduation_date,
-                created_at, updated_at
+                created_at, updated_at, is_onboarded
     `
 	now := time.Now()
 
@@ -149,6 +150,7 @@ func (r *UserRepository) Update(userID string, req auth_models.UpdateUserRequest
 		req.Website,
 		req.GraduationDate,
 		now,
+		req.IsOnboarded,
 		userID,
 	).Scan(
 		&user.ID,
@@ -170,6 +172,7 @@ func (r *UserRepository) Update(userID string, req auth_models.UpdateUserRequest
 		&user.GraduationDate,
 		&user.CreatedAt,
 		&user.UpdatedAt,
+		&user.IsOnboarded,
 	)
 
 	if err != nil {

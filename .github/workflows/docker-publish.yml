@@ -11,7 +11,7 @@ env:
   REGISTRY: ghcr.io
   
   run: |
-        echo IMAGE_REPOSITORY=$(echo ${{ github.repository }} | tr '[:upper:]' '[:lower:]') >> $GITHUB_ENV
+        echo IMAGE_NAME=$(echo ${{ github.repository }} | tr '[:upper:]' '[:lower:]') >> $GITHUB_ENV
 
 # There is a single job in this workflow. It's configured to run on the latest available version of Ubuntu.
 jobs:

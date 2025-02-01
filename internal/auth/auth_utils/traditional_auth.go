@@ -17,6 +17,9 @@ var (
 	ErrUserDoesntExist    = errors.New("user doesn't exist")
 	ErrInvalidCredentials = errors.New("invalid credentials")
 	ErrInvalidToken       = errors.New("invalid token")
+	ErrAccessToken        = errors.New("failed to generate access token")
+	ErrRefreshToken       = errors.New("failed to generate refresh token")
+	ErrNewSession         = errors.New("failed to create new session")
 )
 
 func RegisterUserTraditionalAuthToDatabase(db *sql.DB, req auth_models.CreateUserTraditionalAuthRequest) (*models.User, error) {

@@ -13,8 +13,8 @@ import (
 	"github.com/csusmGDSC/csusmgdsc-api/internal/auth/auth_repositories"
 	"github.com/csusmGDSC/csusmgdsc-api/internal/models"
 	"github.com/google/uuid"
-	"github.com/labstack/echo/v4"
 	"golang.org/x/oauth2"
+	// "github.com/labstack/echo/v4"
 )
 
 func RegisterUserOAuthToDatabase(db *sql.DB, req auth_models.CreateUserOAuthRequest) (*models.User, error) {
@@ -156,20 +156,20 @@ func HandleOAuthCallback(provider string, code string) (*auth.OAuthUserData, err
 	return userData, nil
 }
 
-func CreateLoginSession(dbConn *sql.DB, c echo.Context, user *models.User) (string, error) {
+func CreateLoginSession(dbConn *sql.DB, realIP string, userAgentKey string, user *models.User) (string, *http.Cookie, error) {
 
 	accessToken, err := GenerateJWT(user.ID, user.Role)
 	if err != nil {
-		return "", c.JSON(http.StatusInternalServerError, map[string]string{"error": "Failed to generate access token"})
+		return "", nil, ErrAccessToken
 	}
 
 	refreshToken, issuedAt, expiresAt, err := GenerateRefreshToken(user.ID, user.Role)
 	if err != nil {
-		return "", c.JSON(http.StatusInternalServerError, map[string]string{"error": "Failed to generate refresh token"})
+		return "", nil, ErrRefreshToken
 	}
 
-	ipAddress := c.RealIP()
-	userAgent := c.Request().Header.Get("User-Agent")
+	ipAddress := realIP
+	userAgent := userAgentKey
 	sessionReq := &auth_models.CreateSessionRequest{
 		UserID:    user.ID,
 		Token:     refreshToken,
@@ -181,18 +181,18 @@ func CreateLoginSession(dbConn *sql.DB, c echo.Context, user *models.User) (stri
 
 	err = CreateSession(dbConn, *sessionReq)
 	if err != nil {
-		return "", c.JSON(http.StatusInternalServerError, map[string]string{"error": "Failed to create new session"})
+		return "", nil, ErrNewSession
 	}
 
-	cookie := new(http.Cookie)
-	cookie.Name = "refresh_token"
-	cookie.Value = refreshToken
-	cookie.HttpOnly = true
-	// cookie.Secure = true TODO: Once in production set enable this line
-	cookie.SameSite = http.SameSiteStrictMode
-	cookie.Path = "/"
-	cookie.Expires = expiresAt
-	c.SetCookie(cookie)
+	cookie := &http.Cookie{
+		Name:     "refresh_token",
+		Value:    refreshToken,
+		HttpOnly: true,
+		// Secure = true TODO: Once in production set enable this line
+		SameSite: http.SameSiteStrictMode,
+		Path:     "/",
+		Expires:  expiresAt,
+	}
 
-	return accessToken, nil
+	return accessToken, cookie, nil
 }

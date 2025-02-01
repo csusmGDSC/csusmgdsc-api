@@ -74,40 +74,23 @@ func (h *OAuthHandler) LoginUser(c echo.Context) error {
 		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "Authentication failed:" + err.Error()})
 	}
 
-	accessToken, err := auth_utils.GenerateJWT(user.ID, user.Role)
-	if err != nil {
+	// accessToken, err := auth_utils.GenerateJWT(user.ID, user.Role)
+	accessToken, cookie, err := auth_utils.CreateLoginSession(dbConn, c.RealIP(), c.Request().Header.Get("User-Agent"), user)
+
+	if err != auth_utils.ErrAccessToken {
 		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "Failed to generate access token"})
 	}
 
-	refreshToken, issuedAt, expiresAt, err := auth_utils.GenerateRefreshToken(user.ID, user.Role)
-	if err != nil {
+	// refreshToken, issuedAt, expiresAt, err := auth_utils.GenerateRefreshToken(user.ID, user.Role)
+	if err != auth_utils.ErrRefreshToken {
 		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "Failed to generate refresh token"})
 	}
 
-	ipAddress := c.RealIP()
-	userAgent := c.Request().Header.Get("User-Agent")
-	sessionReq := &auth_models.CreateSessionRequest{
-		UserID:    user.ID,
-		Token:     refreshToken,
-		IssuedAt:  issuedAt,
-		ExpiresAt: expiresAt,
-		IPAddress: ipAddress,
-		UserAgent: userAgent,
-	}
-
-	err = auth_utils.CreateSession(dbConn, *sessionReq)
-	if err != nil {
+	// err = auth_utils.CreateSession(dbConn, *sessionReq)
+	if err != auth_utils.ErrNewSession {
 		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "Failed to create new session"})
 	}
 
-	cookie := new(http.Cookie)
-	cookie.Name = "refresh_token"
-	cookie.Value = refreshToken
-	cookie.HttpOnly = true
-	// cookie.Secure = true TODO: Once in production set enable this line
-	cookie.SameSite = http.SameSiteStrictMode
-	cookie.Path = "/"
-	cookie.Expires = expiresAt
 	c.SetCookie(cookie)
 
 	return c.JSON(http.StatusOK, map[string]interface{}{
@@ -344,40 +327,21 @@ func (h *OAuthHandler) OAuthCallback(c echo.Context) error {
 	// Login the User
 	// TODO: This logic is the same as in the LoginUser handler
 	// Refactor this to a common function
-	accessToken, err := auth_utils.GenerateJWT(user.ID, user.Role)
-	if err != nil {
+	// accessToken, err := auth_utils.GenerateJWT(user.ID, user.Role)
+
+	accessToken, cookie, err := auth_utils.CreateLoginSession(dbConn, c.RealIP(), c.Request().Header.Get("User-Agent"), user)
+	if err != auth_utils.ErrAccessToken {
 		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "Failed to generate access token"})
 	}
 
-	refreshToken, issuedAt, expiresAt, err := auth_utils.GenerateRefreshToken(user.ID, user.Role)
-	if err != nil {
+	if err != auth_utils.ErrRefreshToken {
 		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "Failed to generate refresh token"})
 	}
 
-	ipAddress := c.RealIP()
-	userAgent := c.Request().Header.Get("User-Agent")
-	sessionReq := &auth_models.CreateSessionRequest{
-		UserID:    user.ID,
-		Token:     refreshToken,
-		IssuedAt:  issuedAt,
-		ExpiresAt: expiresAt,
-		IPAddress: ipAddress,
-		UserAgent: userAgent,
-	}
-
-	err = auth_utils.CreateSession(dbConn, *sessionReq)
-	if err != nil {
+	if err != auth_utils.ErrNewSession {
 		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "Failed to create new session"})
 	}
 
-	cookie := new(http.Cookie)
-	cookie.Name = "refresh_token"
-	cookie.Value = refreshToken
-	cookie.HttpOnly = true
-	// cookie.Secure = true TODO: Once in production set enable this line
-	cookie.SameSite = http.SameSiteStrictMode
-	cookie.Path = "/"
-	cookie.Expires = expiresAt
 	c.SetCookie(cookie)
 
 	frontendURL := "https://gdsc-csusm.com"

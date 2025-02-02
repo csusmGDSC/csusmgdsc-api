@@ -74,19 +74,17 @@ func (h *OAuthHandler) LoginUser(c echo.Context) error {
 		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "Authentication failed:" + err.Error()})
 	}
 
-	// accessToken, err := auth_utils.GenerateJWT(user.ID, user.Role)
+	// Refactored code
 	accessToken, cookie, err := auth_utils.CreateLoginSession(dbConn, c.RealIP(), c.Request().Header.Get("User-Agent"), user)
 
 	if err == auth_utils.ErrAccessToken {
 		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "Failed to generate access token"})
 	}
 
-	// refreshToken, issuedAt, expiresAt, err := auth_utils.GenerateRefreshToken(user.ID, user.Role)
 	if err == auth_utils.ErrRefreshToken {
 		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "Failed to generate refresh token"})
 	}
 
-	// err = auth_utils.CreateSession(dbConn, *sessionReq)
 	if err == auth_utils.ErrNewSession {
 		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "Failed to create new session"})
 	}
@@ -324,11 +322,7 @@ func (h *OAuthHandler) OAuthCallback(c echo.Context) error {
 		}
 	}
 
-	// Login the User
-	// TODO: This logic is the same as in the LoginUser handler
-	// Refactor this to a common function
-	// accessToken, err := auth_utils.GenerateJWT(user.ID, user.Role)
-
+	//	Refactored code
 	accessToken, cookie, err := auth_utils.CreateLoginSession(dbConn, c.RealIP(), c.Request().Header.Get("User-Agent"), user)
 	if err == auth_utils.ErrAccessToken {
 		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "Failed to generate access token"})

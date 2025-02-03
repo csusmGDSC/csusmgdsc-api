@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
+	"net/http"
 	"time"
 
 	"github.com/csusmGDSC/csusmgdsc-api/internal/auth"
@@ -13,6 +14,7 @@ import (
 	"github.com/csusmGDSC/csusmgdsc-api/internal/models"
 	"github.com/google/uuid"
 	"golang.org/x/oauth2"
+	// "github.com/labstack/echo/v4"
 )
 
 func RegisterUserOAuthToDatabase(db *sql.DB, req auth_models.CreateUserOAuthRequest) (*models.User, error) {
@@ -152,4 +154,45 @@ func HandleOAuthCallback(provider string, code string) (*auth.OAuthUserData, err
 		}
 	}
 	return userData, nil
+}
+
+func CreateLoginSession(dbConn *sql.DB, realIP string, userAgentKey string, user *models.User) (string, *http.Cookie, error) {
+
+	accessToken, err := GenerateJWT(user.ID, user.Role)
+	if err != nil {
+		return "", nil, ErrAccessToken
+	}
+
+	refreshToken, issuedAt, expiresAt, err := GenerateRefreshToken(user.ID, user.Role)
+	if err != nil {
+		return "", nil, ErrRefreshToken
+	}
+
+	ipAddress := realIP
+	userAgent := userAgentKey
+	sessionReq := &auth_models.CreateSessionRequest{
+		UserID:    user.ID,
+		Token:     refreshToken,
+		IssuedAt:  issuedAt,
+		ExpiresAt: expiresAt,
+		IPAddress: ipAddress,
+		UserAgent: userAgent,
+	}
+
+	err = CreateSession(dbConn, *sessionReq)
+	if err != nil {
+		return "", nil, ErrNewSession
+	}
+
+	cookie := &http.Cookie{
+		Name:     "refresh_token",
+		Value:    refreshToken,
+		HttpOnly: true,
+		// Secure = true TODO: Once in production set enable this line
+		SameSite: http.SameSiteStrictMode,
+		Path:     "/",
+		Expires:  expiresAt,
+	}
+
+	return accessToken, cookie, nil
 }

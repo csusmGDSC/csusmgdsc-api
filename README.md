@@ -21,7 +21,7 @@ The official API for the CSUSM Google Developer Student Club (GDSC) platform. Th
 
 ## 📋 Prerequisites
 
-- Go 1.23 or higher
+- [Go](https://go.dev/doc/install) 1.23 or higher
 - PostgreSQL
 - Docker (optional)
 

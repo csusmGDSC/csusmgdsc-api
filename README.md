@@ -73,13 +73,21 @@ csusmgdsc-api/
 
 ## 🔒 Environment Variables
 DATABASE_URL=             # PostgreSQL connection string
+
 JWT_ACCESS_SECRET=        # JWT access token secret
+
 JWT_REFRESH_SECRET=       # JWT refresh token secret
+
 GITHUB_CLIENT_ID=         # GitHub OAuth client ID
+
 GITHUB_CLIENT_SECRET=     # GitHub OAuth client secret
+
 GOOGLE_CLIENT_ID=         # Google OAuth client ID
+
 GOOGLE_CLIENT_SECRET=     # Google OAuth client secret
+
 OAUTH_REDIRECT_URL=       # OAuth callback URL
+
 FRONTEND_ORIGIN=          # Frontend application URL
 
 ## 🧪 Testing
@@ -87,5 +95,5 @@ Run tests: ```go test ./...```
 
 ## 👥 Contact
 If you have any questions or need help, feel free to reach out to the GDSC team:
-- [GDSC Team](https://teams.microsoft.com/l/team/19%3A7u6FOYbIkk7NLclaCv9ucmdDrPBkvXReZm2ixYlEe601%40thread.tacv2/conversations?groupId=8ca48579-37f4-4060-9bf3-cfca2a74f25e&tenantId=128753ab-cb28-4f82-9733-2b9b91d2aca9)
+- [GDSC Microsoft Teams](https://teams.microsoft.com/l/team/19%3A7u6FOYbIkk7NLclaCv9ucmdDrPBkvXReZm2ixYlEe601%40thread.tacv2/conversations?groupId=8ca48579-37f4-4060-9bf3-cfca2a74f25e&tenantId=128753ab-cb28-4f82-9733-2b9b91d2aca9)
 - [CSUSM GDSC Email](mailto:dsccsusm@gmail.com)

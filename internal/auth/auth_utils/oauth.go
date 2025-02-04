@@ -14,7 +14,6 @@ import (
 	"github.com/csusmGDSC/csusmgdsc-api/internal/models"
 	"github.com/google/uuid"
 	"golang.org/x/oauth2"
-	// "github.com/labstack/echo/v4"
 )
 
 func RegisterUserOAuthToDatabase(db *sql.DB, req auth_models.CreateUserOAuthRequest) (*models.User, error) {

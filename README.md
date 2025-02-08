@@ -24,6 +24,7 @@ The official API for the CSUSM Google Developer Student Club (GDSC) platform. Th
 - [Go](https://go.dev/doc/install) 1.23 or higher
 - PostgreSQL
 - Docker (optional)
+- [DBeaver](https://dbeaver.io/download/)(optional)
 
 ## 🔧 Setup
 
@@ -61,9 +62,11 @@ csusmgdsc-api/
 
 ## 🤝 Contributing
   1. Create your feature branch: `git checkout -b my-new-feature`
-  2. Commit your changes: `git commit -m 'Add some feature'`
-  3. Push to the branch: `git push origin my-new-feature`
-  4. Submit a pull request
+  2. Make changes to the code
+  3. Stage changes `git add .`
+  4. Commit your changes: `git commit -m 'Add some feature'`
+  5. Push to the branch: `git push origin my-new-feature`
+  6. Submit a pull request
 
 ### Development Guidelines
     - Follow Go best practices and style guidelines

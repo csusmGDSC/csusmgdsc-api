@@ -12,6 +12,12 @@ func InitRoutes(e *echo.Echo, h *handlers.Handler) {
 	e.GET("/users/:id", h.GetUserByIDHandler)
 	e.GET("/events", h.GetEventsHandler) // supports pagination ?page=x&limit=y
 	e.GET("/events/:id", h.GetEventByIDHandler)
+	e.POST("/comments", h.InsertCommentHandler)
+	e.DELETE("/comments/:userId/:commentId", h.DeleteCommentHandler)
+	e.GET("/comments/:userId", h.GetCommentsByUserIdHandler)
+	e.GET("/comments/:eventId", h.GetCommentsByEventIdHandler)
+	e.GET("/comments/:id", h.GetCommentByIdHandler)
+	e.PUT("/comments/:id", h.UpdateCommentHandler)
 
 	adminGroup := e.Group("/admin")
 	adminGroup.Use(auth_middleware.AuthMiddleware)

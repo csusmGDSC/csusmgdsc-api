@@ -1,0 +1,18 @@
+name: Cleanup DB Access on PR Close
+on:
+  pull_request:
+    types:
+      - closed
+
+jobs:
+  revoke-db-access:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Extract contributor username
+        run: |
+          echo "CONTRIBUTOR=$(echo '${{ github.event.pull_request.user.login }}')" >> $GITHUB_ENV
+
+      - name: Remove temporary role
+        run: |
+          DB_URL="postgres://${{ secrets.NEON_DB_USER }}:${{ secrets.NEON_DB_PASSWORD }}@neon.tech/test-branch"
+          psql "$DB_URL" -c "DROP ROLE IF EXISTS dev_${{ env.CONTRIBUTOR }};"

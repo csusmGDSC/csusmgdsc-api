@@ -42,7 +42,7 @@ func (h *OAuthHandler) RegisterUser(c echo.Context) error {
 		if err == auth_utils.ErrUserExists {
 			return c.JSON(http.StatusConflict, map[string]string{"error": "Email already registered"})
 		}
-		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "Registration failed: " + err.Error()})
+		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "Registration failed"})
 	}
 
 	return c.JSON(http.StatusCreated, user)
@@ -220,22 +220,11 @@ func (h *OAuthHandler) UpdateUser(c echo.Context) error {
 		return c.JSON(http.StatusBadRequest, map[string]string{"error": "Invalid request format"})
 	}
 
-	// Validate the request
-	if err := h.Validate.Struct(req); err != nil {
-		var validationErrors []string
-		for _, err := range err.(validator.ValidationErrors) {
-			validationErrors = append(validationErrors, err.Field()+" "+err.Tag())
-		}
-		return c.JSON(http.StatusBadRequest, map[string]interface{}{
-			"errors": validationErrors,
-		})
-	}
-
 	dbConn := h.DB.GetDB()
 
 	// Update user
 	userRepo := auth_repositories.NewUserRepository(dbConn)
-	updatedUser, err := userRepo.Update(userID, req)
+	err := userRepo.Update(userID, req)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return c.JSON(http.StatusNotFound, map[string]string{"error": "User not found"})
@@ -243,7 +232,7 @@ func (h *OAuthHandler) UpdateUser(c echo.Context) error {
 		return c.JSON(http.StatusInternalServerError, map[string]string{"error": err.Error()})
 	}
 
-	return c.JSON(http.StatusOK, updatedUser)
+	return c.JSON(http.StatusOK, map[string]string{"message": "User updated successfully"})
 }
 
 // // TODO: Add Role checking to allow Admin's to delete non-Admin users

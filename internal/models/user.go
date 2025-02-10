@@ -26,6 +26,7 @@ type User struct {
 	Email          string         `json:"email" db:"email" validate:"required,email"`
 	Password       *string        `json:"-" db:"password"`
 	Image          *string        `json:"image,omitempty" db:"image"`
+	TotalPoints    *int           `json:"total_points,omitempty" db:"total_points"`
 	Role           *Role          `json:"role" db:"role"`
 	Position       *GDSCPosition  `json:"position" db:"position"`
 	Branch         *GDSCBranch    `json:"branch" db:"branch"`
@@ -42,4 +43,5 @@ type User struct {
 	Provider       *string        `json:"provider" db:"provider"`
 	AuthID         *string        `json:"auth_id" db:"auth_id"`
 	IsOnboarded    bool           `json:"is_onboarded" db:"is_onboarded"`
+	EmailVerified  bool           `json:"email_verified" db:"email_verified"`
 }

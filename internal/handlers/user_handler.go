@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"database/sql"
+	"fmt"
 	"net/http"
 
 	"github.com/csusmGDSC/csusmgdsc-api/internal/auth/auth_repositories"
@@ -22,8 +23,9 @@ func (h *Handler) GetUsersHandler(c echo.Context) error {
 
 	dbConn := h.DB.GetDB()
 	userRepo := auth_repositories.NewUserRepository(dbConn)
-
+	fmt.Println("Created repository")
 	response, err := userRepo.GetAll(page, limit)
+	fmt.Println("User response Gell All")
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return c.JSON(http.StatusNotFound, map[string]string{"error": "No users found"})

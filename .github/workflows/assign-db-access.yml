@@ -39,8 +39,11 @@ jobs:
             Neon Database Access Granted
 
             - **Branch**: `test-branch`
+
             - **Username**: `dev_${{ env.CONTRIBUTOR }}`
+
             - **Password**: `${{ env.TEMP_PASS }}`
+            
             - **Connection String**:
 
             ```

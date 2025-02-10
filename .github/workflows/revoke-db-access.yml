@@ -21,8 +21,15 @@ jobs:
             echo "CONTRIBUTOR=${{ github.event.pull_request.user.login }}" >> $GITHUB_ENV
           fi
 
-      - name: Remove temporary role
+      - name: Revoke temp user privileges
         run: |
+          DB_URL="postgres://${{ secrets.NEON_DB_ADMIN_USER }}:${{ secrets.NEON_DB_ADMIN_PASSWORD }}@ep-dawn-butterfly-a6u946g4.us-west-2.aws.neon.tech/GDSC_DB?sslmode=require"
+          psql "$DB_URL" -c "REVOKE ALL PRIVILEGES ON DATABASE \"GDSC_DB\" FROM \"dev_${{ env.CONTRIBUTOR }}\";"
+          psql "$DB_URL" -c "REVOKE ALL PRIVILEGES ON SCHEMA public FROM \"dev_${{ env.CONTRIBUTOR }}\";"
+          psql "$DB_URL" -c "REVOKE ALL PRIVILEGES ON ALL TABLES IN SCHEMA public FROM \"dev_${{ env.CONTRIBUTOR }}\";"
+      
+          - name: Remove temporary role
+          run: |
           DB_URL="postgres://${{ secrets.NEON_DB_USER }}:${{ secrets.NEON_DB_PASSWORD }}@ep-dawn-butterfly-a6u946g4.us-west-2.aws.neon.tech/GDSC_DB?sslmode=require"
-          # Drop the temporary role, quoting it to handle special characters like '-'
+          # Drop the temporary role
           psql "$DB_URL" -c "DROP ROLE IF EXISTS \"dev_${{ env.CONTRIBUTOR }}\";"

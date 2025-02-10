@@ -30,6 +30,7 @@ jobs:
       - name: Post Connection Details in Issue Comment
         uses: peter-evans/create-or-update-comment@v4.0.0
         with:
+          token: ${{ secrets.GDSC_GITHUB_TOKEN }}
           issue-number: ${{ github.event.issue.number }}
           body: |
             Neon Database Access Granted

@@ -12,17 +12,18 @@ func InitRoutes(e *echo.Echo, h *handlers.Handler) {
 	e.GET("/users/:id", h.GetUserByIDHandler)
 	e.GET("/events", h.GetEventsHandler) // supports pagination ?page=x&limit=y
 	e.GET("/events/:id", h.GetEventByIDHandler)
-	e.POST("/comments", h.InsertCommentHandler)
-	e.DELETE("/comments/:userId/:commentId", h.DeleteCommentHandler)
-	e.GET("/comments/:userId", h.GetCommentsByUserIdHandler)
-	e.GET("/comments/:eventId", h.GetCommentsByEventIdHandler)
-	e.GET("/comments/:id", h.GetCommentByIdHandler)
-	e.PUT("/comments/:id", h.UpdateCommentHandler)
 
 	adminGroup := e.Group("/admin")
 	adminGroup.Use(auth_middleware.AuthMiddleware)
 	adminGroup.POST("/events", h.InsertEventHandler)
 
+	// Comments
+	e.POST("/comments", h.InsertCommentHandler, auth_middleware.AuthMiddleware)       // Create comment
+	e.GET("/comments", h.GetCommentsHandler)                                          // Get comments by ?event_id=x&user_id=y
+	e.GET("/comments/:id/replies", h.GetCommentRepliesHandler)                        // Get replies for a comment by id
+	e.GET("/comments/:id", h.GetCommentByIdHandler)                                   // Get comment by id
+	e.PUT("/comments/:id", h.UpdateCommentHandler, auth_middleware.AuthMiddleware)    // Update comment by id
+	e.DELETE("/comments/:id", h.DeleteCommentHandler, auth_middleware.AuthMiddleware) // Delete comment by id
 }
 
 func InitOAuthRoutes(e *echo.Echo, h *auth_handlers.OAuthHandler) {

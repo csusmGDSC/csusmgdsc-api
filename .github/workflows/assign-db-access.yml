@@ -13,7 +13,7 @@ jobs:
           echo "CONTRIBUTOR=${{ github.event.assignee.login }}" >> $GITHUB_ENV
           echo "ISSUE_NUMBER=${{ github.event.issue.number }}" >> $GITHUB_ENV
 
-      - name: Create a temporary database role
+      - name: Create a Temporary Database Role
         run: |
           DB_URL="postgres://${{ secrets.NEON_DB_ADMIN_USER }}:${{ secrets.NEON_DB_ADMIN_PASSWORD }}@ep-dawn-butterfly-a6u946g4.us-west-2.aws.neon.tech/GDSC_DB?sslmode=require"
           TEMP_PASS=$(openssl rand -base64 12)
@@ -27,17 +27,18 @@ jobs:
 
           echo "TEMP_PASS=$TEMP_PASS" >> $GITHUB_ENV
 
-      - name: Post Connection Details in Issue
-        uses: peter-evans/create-or-update-comment@v3
+      - name: Post Connection Details in Issue Comment
+        uses: peter-evans/create-or-update-comment@v4.0.0
         with:
           issue-number: ${{ github.event.issue.number }}
           body: |
             Neon Database Access Granted
-            - Branch**: `test-branch`  
-            - Username: `dev_${{ env.CONTRIBUTOR }}`  
-            - Password: `${{ env.TEMP_PASS }}`  
-            - Connection String:  
+            - **Branch**: `test-branch`  
+            - **Username**: `dev_${{ env.CONTRIBUTOR }}`  
+            - **Password**: `${{ env.TEMP_PASS }}`  
+            - **Connection String**:  
               ```
               postgres://dev_${{ env.CONTRIBUTOR }}:${{ env.TEMP_PASS }}@ep-dawn-butterfly-a6u946g4.us-west-2.aws.neon.tech/GDSC_DB?sslmode=require
               ```
             Use this connection string while working on this issue!
+          reactions: rocket

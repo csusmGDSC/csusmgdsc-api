@@ -29,19 +29,19 @@ jobs:
 
           echo "TEMP_PASS=$TEMP_PASS" >> $GITHUB_ENV
 
-      - name: Post Connection Details in Issue Comment
-        uses: peter-evans/create-or-update-comment@v4.0.0
-        with:
-          token: ${{ secrets.GDSC_GITHUB_TOKEN }}
-          issue-number: ${{ github.event.issue.number }}
-          body: |
+      - name: Add Comment to Issue
+        run: gh issue comment ${{ github.event.issue.number }} --body "$BODY"
+        env: 
+          GH_TOKEN: ${{ secrets.GDSC_GITHUB_TOKEN }}
+          GH_REPO: ${{ github.repository }}
+          NUMBER: ${{ github.event.issue.number }}
+          BODY: >
             Neon Database Access Granted
             - **Branch**: `test-branch`  
             - **Username**: `dev_${{ env.CONTRIBUTOR }}`  
             - **Password**: `${{ env.TEMP_PASS }}`  
             - **Connection String**:  
-              ```
-              postgres://dev_${{ env.CONTRIBUTOR }}:${{ env.TEMP_PASS }}@ep-dawn-butterfly-a6u946g4.us-west-2.aws.neon.tech/GDSC_DB?sslmode=require
-              ```
-            Use this connection string while working on this issue!
-          reactions: rocket
+            ```
+            postgres://dev_${{ env.CONTRIBUTOR }}:${{ env.TEMP_PASS }}@ep-dawn-butterfly-a6u946g4.us-west-2.aws.neon.tech/GDSC_DB?sslmode=require
+            ```
+            :sparkles:Use this connection string while working on this issue!:sparkles:

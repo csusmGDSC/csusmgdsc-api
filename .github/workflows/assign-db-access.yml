@@ -15,7 +15,7 @@ jobs:
 
       - name: Create a temporary database role
         run: |
-          DB_URL="postgres://${{ secrets.NEON_DB_USER }}:${{ secrets.NEON_DB_PASSWORD }}@neon.tech/test-branch"
+          DB_URL="postgres://${{ secrets.NEON_DB_USER }}:${{ secrets.NEON_DB_PASSWORD }}@ep-dawn-butterfly-a6u946g4.us-west-2.aws.neon.tech/GDSC_DB?sslmode=require"
           TEMP_PASS=$(openssl rand -base64 12)
           
           # Create a temporary database user

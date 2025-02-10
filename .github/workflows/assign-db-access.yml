@@ -7,6 +7,8 @@ on:
 jobs:
   grant-db-access:
     runs-on: ubuntu-latest
+    permissions:
+        issues: write
     steps:
       - name: Extract contributor and issue number
         run: |

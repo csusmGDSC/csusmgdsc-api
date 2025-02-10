@@ -74,7 +74,6 @@ func LoadConfig() *Config {
 			GitHubClientSecret: getEnv("GITHUB_CLIENT_SECRET"),
 			GoogleClientID:     getEnv("GOOGLE_CLIENT_ID"),
 			GoogleClientSecret: getEnv("GOOGLE_CLIENT_SECRET"),
-			OAuthRedirectUrl:   getEnv("OAUTH_REDIRECT_URL"),
 			FrontendOrigin:     getEnv("FRONTEND_ORIGIN", "http://localhost:8081"),
 		}
 	})

@@ -33,6 +33,8 @@ type UpdateUserRequest struct {
 	FirstName      *string              `json:"first_name,omitempty"`
 	LastName       *string              `json:"last_name,omitempty"`
 	Image          *string              `json:"image,omitempty"`
+	TotalPoints    *int                 `json:"total_points,omitempty"`
+	Role           *models.Role         `json:"role,omitempty"`
 	Position       *models.GDSCPosition `json:"position,omitempty"`
 	Branch         *models.GDSCBranch   `json:"branch,omitempty"`
 	Github         *string              `json:"github,omitempty"`
@@ -44,6 +46,7 @@ type UpdateUserRequest struct {
 	Website        *string              `json:"website,omitempty"`
 	GraduationDate *time.Time           `json:"graduation_date,omitempty"`
 	IsOnboarded    *bool                `json:"is_onboarded,omitempty"`
+	EmailVerified  *bool                `json:"email_verified,omitempty"`
 }
 
 type AllUsersResponse struct {

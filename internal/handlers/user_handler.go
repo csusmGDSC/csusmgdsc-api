@@ -30,7 +30,7 @@ func (h *Handler) GetUsersHandler(c echo.Context) error {
 		if err == sql.ErrNoRows {
 			return c.JSON(http.StatusNotFound, map[string]string{"error": "No users found"})
 		}
-		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "Failed to get users: error: " + err.Error()})
+		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "Failed to get users"})
 	}
 
 	// Clear sensitive information from response

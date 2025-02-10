@@ -18,6 +18,38 @@ func NewCommentRepository(db *sql.DB) *CommentRepository {
 	return &CommentRepository{db: db}
 }
 
+// CheckIfExists checks if a specific value exists in a column of the Comments table.
+// The function takes a column name and a UUID as arguments, and returns a boolean
+// indicating whether a row with the given value exists in the column, along with
+// an error if the query fails.
+func (r *CommentRepository) CheckIfExists(table string, column string, id uuid.UUID) (bool, error) {
+	query := "SELECT EXISTS(SELECT 1 FROM " + table + " WHERE " + column + " = $1)"
+	var exists bool
+	err := r.db.QueryRow(query, id).Scan(&exists)
+	if err != nil {
+		return false, err
+	}
+	return exists, nil
+}
+
+// CommentExists checks if a comment with the given ID exists in the Comments table.
+//
+// The function takes a UUID representing the comment ID as an argument and returns a
+// boolean indicating whether the comment exists in the table, along with an error if
+// the query fails.
+func (r *CommentRepository) CommentExists(commentID uuid.UUID) (bool, error) {
+	return r.CheckIfExists("comments", "id", commentID)
+}
+
+// ParentExists checks if a comment with the given parent ID exists in the Comments table.
+//
+// The function takes a UUID representing the parent ID as an argument and returns a
+// boolean indicating whether the comment exists in the table, along with an error if
+// the query fails.
+func (r *CommentRepository) ParentExists(parentID uuid.UUID) (bool, error) {
+	return r.CheckIfExists("comments", "id", parentID)
+}
+
 // getComments queries the database for comments using the given query and arguments.
 // The function returns a slice of pointers to Comment objects and an error.
 // The error is non-nil if there was an error querying the database or scanning the results.
@@ -50,7 +82,7 @@ func (r *CommentRepository) CreateComment(db *sql.DB, comment models.Comment) er
 		INSERT INTO Comments (
 			id, user_id, event_id, content, pinned_by, created_at, updated_at, parent_id
 		) VALUES (
-			$1, $2, $3, $4, $5, $6, $7, $8, $9, $10
+			$1, $2, $3, $4, $5, $6, $7, $8
 		);
     `
 
@@ -158,6 +190,12 @@ func (r *CommentRepository) GetCommentsByUserIdAndEventId(userId uuid.UUID, even
 // ID.
 func (r *CommentRepository) GetCommentByCommentId(id uuid.UUID) (*models.Comment, error) {
 	comments, _ := r.getComments(`SELECT * FROM Comments WHERE id = $1`, id)
+
+	// Return error if no comments found
+	if len(comments) == 0 {
+		return nil, fmt.Errorf("comment not found")
+	}
+
 	return comments[0], nil // only one comment should be returned
 }
 

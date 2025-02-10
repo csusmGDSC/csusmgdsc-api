@@ -1,0 +1,42 @@
+name: Assign Neon DB Access to Contributor
+on:
+  issues:
+    types:
+      - assigned
+
+jobs:
+  grant-db-access:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Extract contributor and issue number
+        run: |
+          echo "CONTRIBUTOR=${{ github.event.assignee.login }}" >> $GITHUB_ENV
+          echo "ISSUE_NUMBER=${{ github.event.issue.number }}" >> $GITHUB_ENV
+
+      - name: Create a temporary database role
+        run: |
+          DB_URL="postgres://${{ secrets.NEON_DB_USER }}:${{ secrets.NEON_DB_PASSWORD }}@ep-dawn-butterfly-a6u946g4.us-west-2.aws.neon.tech/GDSC_DB?sslmode=require"
+          TEMP_PASS=$(openssl rand -base64 12)
+
+          # Quote the contributor's name to handle special characters like '-'
+          psql "$DB_URL" -c "CREATE ROLE \"dev_${{ env.CONTRIBUTOR }}\" WITH LOGIN PASSWORD '$TEMP_PASS';"
+          psql "$DB_URL" -c "GRANT CONNECT ON DATABASE test TO \"dev_${{ env.CONTRIBUTOR }}\";"
+          psql "$DB_URL" -c "GRANT USAGE ON SCHEMA public TO \"dev_${{ env.CONTRIBUTOR }}\";"
+          psql "$DB_URL" -c "GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public TO \"dev_${{ env.CONTRIBUTOR }}\";"
+
+          echo "TEMP_PASS=$TEMP_PASS" >> $GITHUB_ENV
+
+      - name: Post Connection Details in Issue
+        uses: peter-evans/create-or-update-comment@v3
+        with:
+          issue-number: ${{ github.event.issue.number }}
+          body: |
+            🔹 **Neon Database Access Granted**  
+            - **Branch**: `test-branch`  
+            - **Username**: `dev_${{ env.CONTRIBUTOR }}`  
+            - **Password**: `${{ env.TEMP_PASS }}`  
+            - **Connection String**:  
+              ```
+              postgres://dev_${{ env.CONTRIBUTOR }}:${{ env.TEMP_PASS }}@ep-dawn-butterfly-a6u946g4.us-west-2.aws.neon.tech/GDSC_DB?sslmode=require
+              ```
+            🚀 Use this connection string while working on this issue!

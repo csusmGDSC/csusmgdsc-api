@@ -15,14 +15,14 @@ jobs:
 
       - name: Create a temporary database role
         run: |
-          DB_URL="postgres://${{ secrets.NEON_DB_USER }}:${{ secrets.NEON_DB_PASSWORD }}@ep-dawn-butterfly-a6u946g4.us-west-2.aws.neon.tech/GDSC_DB?sslmode=require"
+          DB_URL="postgres://${{ secrets.NEON_DB_USER }}:${{ secrets.NEON_DB_PASSWORD }}@neon.tech/test-branch"
           TEMP_PASS=$(openssl rand -base64 12)
-          
-          # Create a temporary database user
-          psql "$DB_URL" -c "CREATE ROLE dev_${{ env.CONTRIBUTOR }} WITH LOGIN PASSWORD '$TEMP_PASS';"
-          psql "$DB_URL" -c "GRANT CONNECT ON DATABASE test TO dev_${{ env.CONTRIBUTOR }};"
-          psql "$DB_URL" -c "GRANT USAGE ON SCHEMA public TO dev_${{ env.CONTRIBUTOR }};"
-          psql "$DB_URL" -c "GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public TO dev_${{ env.CONTRIBUTOR }};"
+
+          # Quote the contributor's name to handle special characters like '-'
+          psql "$DB_URL" -c "CREATE ROLE \"dev_${{ env.CONTRIBUTOR }}\" WITH LOGIN PASSWORD '$TEMP_PASS';"
+          psql "$DB_URL" -c "GRANT CONNECT ON DATABASE test TO \"dev_${{ env.CONTRIBUTOR }}\";"
+          psql "$DB_URL" -c "GRANT USAGE ON SCHEMA public TO \"dev_${{ env.CONTRIBUTOR }}\";"
+          psql "$DB_URL" -c "GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public TO \"dev_${{ env.CONTRIBUTOR }}\";"
 
           echo "TEMP_PASS=$TEMP_PASS" >> $GITHUB_ENV
 

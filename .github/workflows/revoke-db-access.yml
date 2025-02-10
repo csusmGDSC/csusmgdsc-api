@@ -1,5 +1,8 @@
-name: Cleanup DB Access on PR Close
+name: Cleanup DB Access on Issue Close or PR Close
 on:
+  issues:
+    types:
+      - closed
   pull_request:
     types:
       - closed
@@ -10,9 +13,16 @@ jobs:
     steps:
       - name: Extract contributor username
         run: |
-          echo "CONTRIBUTOR=$(echo '${{ github.event.pull_request.user.login }}')" >> $GITHUB_ENV
+          # For Issue Close Trigger
+          if [[ "${{ github.event_name }}" == "issues" ]]; then
+            echo "CONTRIBUTOR=${{ github.event.issue.user.login }}" >> $GITHUB_ENV
+          # For PR Close Trigger
+          elif [[ "${{ github.event_name }}" == "pull_request" ]]; then
+            echo "CONTRIBUTOR=${{ github.event.pull_request.user.login }}" >> $GITHUB_ENV
+          fi
 
       - name: Remove temporary role
         run: |
-          DB_URL="postgres://${{ secrets.NEON_DB_USER }}:${{ secrets.NEON_DB_PASSWORD }}@ep-dawn-butterfly-a6u946g4.us-west-2.aws.neon.tech/GDSC_DB?sslmode=require"
-          psql "$DB_URL" -c "DROP ROLE IF EXISTS dev_${{ env.CONTRIBUTOR }};"
+          DB_URL="postgres://${{ secrets.NEON_DB_USER }}:${{ secrets.NEON_DB_PASSWORD }}@neon.tech/test-branch"
+          # Drop the temporary role, quoting it to handle special characters like '-'
+          psql "$DB_URL" -c "DROP ROLE IF EXISTS \"dev_${{ env.CONTRIBUTOR }}\";"

@@ -10,7 +10,7 @@ type Comment struct {
 	ID        uuid.UUID  `json:"id,omitempty" db:"id"`
 	UserId    uuid.UUID  `json:"user_id" db:"user_id"`
 	EventId   uuid.UUID  `json:"event_id" db:"event_id"`
-	Content   string     `json:"content" db:"content"`
+	Content   string     `json:"content" db:"content" validate:"omitempty,min=1,max=10000"`
 	PinnedBy  *uuid.UUID `json:"pinned_by,omitempty" db:"pinned_by"`
 	CreatedAt time.Time  `json:"created_at,omitempty" db:"created_at"`
 	UpdatedAt time.Time  `json:"updated_at,omitempty" db:"updated_at"`
@@ -18,9 +18,9 @@ type Comment struct {
 	Replies   []*Comment `json:"replies,omitempty"`
 }
 
-type UpdateCommentRquest struct {
+type UpdateCommentRequest struct {
 	ID       *uuid.UUID `json:"id,omitempty" db:"id"`
-	Content  *string    `json:"content,omitempty" db:"content"`
+	Content  *string    `json:"content,omitempty" db:"content" validate:"omitempty,min=1,max=10000"`
 	PinnedBy *uuid.UUID `json:"pinned_by,omitempty" db:"pinned_by"`
 	ParentId *uuid.UUID `json:"parent_id,omitempty" db:"parent_id"`
 }

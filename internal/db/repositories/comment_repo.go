@@ -18,48 +18,14 @@ func NewCommentRepository(db *sql.DB) *CommentRepository {
 	return &CommentRepository{db: db}
 }
 
-// CheckIfExists checks if a specific value exists in a column of the Comments table.
-// The function takes a column name and a UUID as arguments, and returns a boolean
-// indicating whether a row with the given value exists in the column, along with
-// an error if the query fails.
-func (r *CommentRepository) CheckIfExists(table string, column string, id uuid.UUID) (bool, error) {
-	query := "SELECT EXISTS(SELECT 1 FROM " + table + " WHERE " + column + " = $1)"
-	var exists bool
-	err := r.db.QueryRow(query, id).Scan(&exists)
-	if err != nil {
-		return false, err
-	}
-	return exists, nil
-}
-
-// CommentExists checks if a comment with the given ID exists in the Comments table.
+// ScanComments takes a pointer to an sql.Rows object and returns a slice of pointers
+// to Comment objects and an error.
 //
-// The function takes a UUID representing the comment ID as an argument and returns a
-// boolean indicating whether the comment exists in the table, along with an error if
-// the query fails.
-func (r *CommentRepository) CommentExists(commentID uuid.UUID) (bool, error) {
-	return r.CheckIfExists("comments", "id", commentID)
-}
-
-// ParentExists checks if a comment with the given parent ID exists in the Comments table.
-//
-// The function takes a UUID representing the parent ID as an argument and returns a
-// boolean indicating whether the comment exists in the table, along with an error if
-// the query fails.
-func (r *CommentRepository) ParentExists(parentID uuid.UUID) (bool, error) {
-	return r.CheckIfExists("comments", "id", parentID)
-}
-
-// getComments queries the database for comments using the given query and arguments.
-// The function returns a slice of pointers to Comment objects and an error.
-// The error is non-nil if there was an error querying the database or scanning the results.
-func (r *CommentRepository) getComments(query string, args ...interface{}) ([]*models.Comment, error) {
-	rows, err := r.db.Query(query, args...)
-	if err != nil {
-		return nil, fmt.Errorf("error querying comments: %v", err)
-	}
-	defer rows.Close()
-
+// The function iterates over the rows and scans
+// each row into a Comment object, appending each Comment object to the slice and
+// returning an error if there is an issue scanning the rows or iterating over the
+// result set.
+func (r *CommentRepository) ScanComments(rows *sql.Rows) ([]*models.Comment, error) {
 	var comments []*models.Comment
 	for rows.Next() {
 		var comment models.Comment
@@ -68,6 +34,9 @@ func (r *CommentRepository) getComments(query string, args ...interface{}) ([]*m
 			return nil, fmt.Errorf("error scanning comment: %v", err)
 		}
 		comments = append(comments, &comment)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("error iterating over rows: %v", err)
 	}
 	return comments, nil
 }
@@ -106,16 +75,33 @@ func (r *CommentRepository) DeleteCommentById(id uuid.UUID) error {
 	return err
 }
 
-// GetAllComments returns a slice of pointers to Comment objects that represent all comments in the database.
-// The function returns an error if there is an error querying the database or scanning the results.
+// GetAllComments retrieves all comments from the database.
+//
+// The function queries the Comments table to return a slice of pointers to Comment objects.
+// It returns an error if there is an issue querying the database or scanning the results.
 func (r *CommentRepository) GetAllComments() ([]*models.Comment, error) {
-	return r.getComments(`SELECT * FROM Comments`)
+	rows, err := r.db.Query(`SELECT * FROM Comments`)
+	if err != nil {
+		return nil, fmt.Errorf("error querying all comments: %v", err)
+	}
+	defer rows.Close()
+
+	return r.ScanComments(rows)
 }
 
-// GetCommentsByUserId returns a slice of pointers to Comment objects that represent comments posted by the user with the given ID.
-// The function returns an error if there is an error querying the database or scanning the results.
+// GetCommentsByUserId retrieves all comments made by a user from the database.
+//
+// The function takes a UUID representing the user ID as an argument and returns a slice of pointers
+// to Comment objects and an error. The error is non-nil if there is an issue querying the database or
+// scanning the results.
 func (r *CommentRepository) GetCommentsByUserId(userId uuid.UUID) ([]*models.Comment, error) {
-	return r.getComments(`SELECT * FROM Comments WHERE user_id = $1`, userId)
+	rows, err := r.db.Query(`SELECT * FROM Comments WHERE user_id = $1`, userId)
+	if err != nil {
+		return nil, fmt.Errorf("error querying comments by user ID: %v", err)
+	}
+	defer rows.Close()
+
+	return r.ScanComments(rows)
 }
 
 // GetCommentsWithRepliesByEventId returns a slice of pointers to Comment objects that represent
@@ -173,30 +159,43 @@ func (r *CommentRepository) GetCommentsWithRepliesByEventId(eventId uuid.UUID) (
 	return comments, nil
 }
 
-// GetCommentsByUserIdAndEventId returns a slice of pointers to Comment objects that represent comments posted by the user with the given ID
-// and referring to the event with the given ID.
+// GetCommentsByUserIdAndEventId retrieves comments from the database that match both the specified user ID and event ID.
 //
-// The function returns an error if there is an error querying the database or scanning the results.
+// The function takes two UUIDs as arguments: one representing the user ID and the other representing the event ID.
+// It returns a slice of pointers to Comment objects and an error. The error is non-nil if there is an issue querying the database
+// or scanning the results.
 func (r *CommentRepository) GetCommentsByUserIdAndEventId(userId uuid.UUID, eventId uuid.UUID) ([]*models.Comment, error) {
-	return r.getComments(`SELECT * FROM Comments WHERE user_id = $1 AND event_id = $2`, userId, eventId)
+	rows, err := r.db.Query(`SELECT * FROM Comments WHERE user_id = $1 AND event_id = $2`, userId, eventId)
+	if err != nil {
+		return nil, fmt.Errorf("error querying comments by user and event ID: %v", err)
+	}
+	defer rows.Close()
+
+	return r.ScanComments(rows)
 }
 
-// GetCommentByCommentId retrieves a comment by its unique identifier.
+// GetCommentByCommentId retrieves a comment from the database by its ID.
 //
-// The function takes a UUID representing the comment ID as an argument
-// and returns a pointer to a Comment object and an error. The error is
-// non-nil if there was an issue querying the database or if the comment
-// could not be found. Only one comment should be returned for the given
-// ID.
+// The function takes a UUID representing the comment ID as an argument and returns a pointer
+// to a Comment object and an error. The error is non-nil if there is an issue querying the
+// database or scanning the results, or if the comment is not found.
 func (r *CommentRepository) GetCommentByCommentId(id uuid.UUID) (*models.Comment, error) {
-	comments, _ := r.getComments(`SELECT * FROM Comments WHERE id = $1`, id)
+	rows, err := r.db.Query(`SELECT * FROM Comments WHERE id = $1`, id)
+	if err != nil {
+		return nil, fmt.Errorf("error querying comment by ID: %v", err)
+	}
+	defer rows.Close()
 
-	// Return error if no comments found
+	comments, err := r.ScanComments(rows)
+	if err != nil {
+		return nil, err
+	}
+
 	if len(comments) == 0 {
 		return nil, fmt.Errorf("comment not found")
 	}
 
-	return comments[0], nil // only one comment should be returned
+	return comments[0], nil
 }
 
 // UpdateCommentByCommentId updates the fields of a comment in the database by its ID.
@@ -212,7 +211,7 @@ func (r *CommentRepository) GetCommentByCommentId(id uuid.UUID) (*models.Comment
 //
 // If no fields are provided for update, the function returns early with no error.
 // The function returns an error if there is an issue executing the update query.
-func (r *CommentRepository) UpdateCommentByCommentId(id uuid.UUID, comment models.UpdateCommentRquest) error {
+func (r *CommentRepository) UpdateCommentByCommentId(id uuid.UUID, comment models.UpdateCommentRequest) error {
 	updates := make([]string, 0)
 	values := make([]interface{}, 0)
 	valueIndex := 1 // Start at 1 because $1 is commentID
@@ -255,11 +254,18 @@ func (r *CommentRepository) UpdateCommentByCommentId(id uuid.UUID, comment model
 	return err
 }
 
-// GetRepliesByCommentId retrieves all comments that are replies to the comment with the given ID.
+// GetRepliesByCommentId retrieves a slice of pointers to Comment objects that represent
+// all replies to the comment with the given ID.
 //
 // The function takes a UUID representing the comment ID as an argument and returns a slice of pointers
 // to Comment objects and an error. The error is non-nil if there is an issue querying the database or
 // scanning the results.
 func (r *CommentRepository) GetRepliesByCommentId(commentId uuid.UUID) ([]*models.Comment, error) {
-	return r.getComments(`SELECT * FROM Comments WHERE parent_id = $1`, commentId)
+	rows, err := r.db.Query(`SELECT * FROM Comments WHERE parent_id = $1`, commentId)
+	if err != nil {
+		return nil, fmt.Errorf("error querying replies by comment ID: %v", err)
+	}
+	defer rows.Close()
+
+	return r.ScanComments(rows)
 }

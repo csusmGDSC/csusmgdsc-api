@@ -240,26 +240,3 @@ func (r *EventRepository) GetTotalCount() (int, error) {
 	}
 	return count, nil
 }
-
-// CheckIfExists checks if a specific value exists in a column of the Comments table.
-// The function takes a column name and a UUID as arguments, and returns a boolean
-// indicating whether a row with the given value exists in the column, along with
-// an error if the query fails.
-func (r *EventRepository) CheckIfExists(table string, column string, id uuid.UUID) (bool, error) {
-	query := "SELECT EXISTS(SELECT 1 FROM " + table + " WHERE " + column + " = $1)"
-	var exists bool
-	err := r.db.QueryRow(query, id).Scan(&exists)
-	if err != nil {
-		return false, err
-	}
-	return exists, nil
-}
-
-// EventExists checks if a comment with the given event ID exists in the Events table.
-//
-// The function takes a UUID representing the event ID as an argument and returns a
-// boolean indicating whether the comment exists in the table, along with an error if
-// the query fails.
-func (r *EventRepository) EventExists(eventID uuid.UUID) (bool, error) {
-	return r.CheckIfExists("events", "id", eventID)
-}

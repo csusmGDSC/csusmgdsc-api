@@ -70,16 +70,16 @@ func (h *Handler) InsertCommentHandler(c echo.Context) error {
 
 	dbConn := h.DB.GetDB()
 	commentRepo := repositories.NewCommentRepository(dbConn)
-	eventRepo := repositories.NewEventRepository(dbConn)
+	utilsRepo := repositories.NewUtilsRepository(dbConn)
 
 	// Check if event exists
-	if exists, err := eventRepo.EventExists(comment.EventId); !exists || err != nil {
+	if exists, err := utilsRepo.CheckIfUUIDExists("events", "id", comment.EventId); !exists || err != nil {
 		return c.JSON(http.StatusBadRequest, map[string]string{"error": "Event not found"})
 	}
 
 	// If given the parent comment ID, check if it exists
 	if comment.ParentId != nil {
-		if exists, err := commentRepo.ParentExists(*comment.ParentId); !exists || err != nil {
+		if exists, err := utilsRepo.CheckIfUUIDExists("comments", "id", *comment.ParentId); !exists || err != nil {
 			return c.JSON(http.StatusBadRequest, map[string]string{"error": "Parent comment not found"})
 		}
 	}
@@ -110,9 +110,10 @@ func (h *Handler) DeleteCommentHandler(c echo.Context) error {
 
 	dbConn := h.DB.GetDB()
 	commentRepo := repositories.NewCommentRepository(dbConn)
+	utilsRepo := repositories.NewUtilsRepository(dbConn)
 
 	// Check if comment exists
-	if exists, err := commentRepo.CommentExists(commentUUID); !exists || err != nil {
+	if exists, err := utilsRepo.CheckIfUUIDExists("comments", "id", commentUUID); !exists || err != nil {
 		return c.JSON(http.StatusBadRequest, map[string]string{"error": "Comment not found"})
 	}
 
@@ -147,7 +148,7 @@ func (h *Handler) GetCommentsHandler(c echo.Context) error {
 	eventID := c.QueryParam("event_id")
 	dbConn := h.DB.GetDB()
 	commentRepo := repositories.NewCommentRepository(dbConn)
-	eventtRepo := repositories.NewEventRepository(dbConn)
+	utilsRepo := repositories.NewUtilsRepository(dbConn)
 
 	var userUUID, eventUUID uuid.UUID
 	var err error
@@ -169,7 +170,7 @@ func (h *Handler) GetCommentsHandler(c echo.Context) error {
 
 	// Check if event exists
 	if eventID != "" {
-		if exists, err := eventtRepo.EventExists(eventUUID); !exists || err != nil {
+		if exists, err := utilsRepo.CheckIfUUIDExists("events", "id", eventUUID); !exists || err != nil {
 			return c.JSON(http.StatusBadRequest, map[string]string{"error": "Event not found"})
 		}
 	}
@@ -224,9 +225,10 @@ func (h *Handler) GetCommentByIdHandler(c echo.Context) error {
 
 	dbConn := h.DB.GetDB()
 	commentRepo := repositories.NewCommentRepository(dbConn)
+	utilsRepo := repositories.NewUtilsRepository(dbConn)
 
 	// Check if comment exists
-	if exists, err := commentRepo.CommentExists(commentUUID); !exists || err != nil {
+	if exists, err := utilsRepo.CheckIfUUIDExists("comments", "id", commentUUID); !exists || err != nil {
 		return c.JSON(http.StatusBadRequest, map[string]string{"error": "Comment not found"})
 	}
 
@@ -270,7 +272,7 @@ func (h *Handler) UpdateCommentHandler(c echo.Context) error {
 	}
 
 	// Bind JSON request body to the Comment struct
-	var comment models.UpdateCommentRquest
+	var comment models.UpdateCommentRequest
 	if err := c.Bind(&comment); err != nil {
 		return c.JSON(http.StatusBadRequest, err.Error())
 	}
@@ -289,9 +291,10 @@ func (h *Handler) UpdateCommentHandler(c echo.Context) error {
 
 	dbConn := h.DB.GetDB()
 	commentRepo := repositories.NewCommentRepository(dbConn)
+	utilsRepo := repositories.NewUtilsRepository(dbConn)
 
 	// Check if comment exists
-	if exists, err := commentRepo.CommentExists(commentUUID); !exists || err != nil {
+	if exists, err := utilsRepo.CheckIfUUIDExists("comments", "id", commentUUID); !exists || err != nil {
 		return c.JSON(http.StatusBadRequest, map[string]string{"error": "Comment not found"})
 	}
 
@@ -338,9 +341,10 @@ func (h *Handler) GetCommentRepliesHandler(c echo.Context) error {
 
 	dbConn := h.DB.GetDB()
 	commentRepo := repositories.NewCommentRepository(dbConn)
+	utilsRepo := repositories.NewUtilsRepository(dbConn)
 
 	// Check if comment exists
-	if exists, err := commentRepo.CommentExists(commentUUID); !exists || err != nil {
+	if exists, err := utilsRepo.CheckIfUUIDExists("comments", "id", commentUUID); !exists || err != nil {
 		return c.JSON(http.StatusBadRequest, map[string]string{"error": "Comment not found"})
 	}
 

@@ -17,13 +17,12 @@ func InitRoutes(e *echo.Echo, h *handlers.Handler) {
 	adminGroup.Use(auth_middleware.AuthMiddleware)
 	adminGroup.POST("/events", h.InsertEventHandler)
 
-	// Comments
-	e.POST("/comments", h.InsertCommentHandler, auth_middleware.AuthMiddleware)       // Create comment (Requires auth)
-	e.GET("/comments", h.GetCommentsHandler)                                          // Get comments by ?event_id=x&user_id=y
-	e.GET("/comments/:id/replies", h.GetCommentRepliesHandler)                        // Get replies for a comment by id
-	e.GET("/comments/:id", h.GetCommentByIdHandler)                                   // Get comment by id
-	e.PUT("/comments/:id", h.UpdateCommentHandler, auth_middleware.AuthMiddleware)    // Update comment by id (Requires auth)
-	e.DELETE("/comments/:id", h.DeleteCommentHandler, auth_middleware.AuthMiddleware) // Delete comment by id (Requires auth)
+	e.POST("/comments", h.InsertCommentHandler, auth_middleware.AuthMiddleware)
+	e.GET("/comments", h.GetCommentsHandler) // supports optional params ?event_id=x&user_id=y
+	e.GET("/comments/:id/replies", h.GetCommentRepliesHandler)
+	e.GET("/comments/:id", h.GetCommentByIdHandler)
+	e.PUT("/comments/:id", h.UpdateCommentHandler, auth_middleware.AuthMiddleware)
+	e.DELETE("/comments/:id", h.DeleteCommentHandler, auth_middleware.AuthMiddleware)
 }
 
 func InitOAuthRoutes(e *echo.Echo, h *auth_handlers.OAuthHandler) {

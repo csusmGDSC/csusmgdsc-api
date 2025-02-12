@@ -27,6 +27,7 @@ jobs:
           psql "$DB_URL" -c "REVOKE ALL PRIVILEGES ON DATABASE \"GDSC_DB\" FROM \"dev_${{ env.CONTRIBUTOR }}\";"
           psql "$DB_URL" -c "REVOKE ALL PRIVILEGES ON SCHEMA public FROM \"dev_${{ env.CONTRIBUTOR }}\";"
           psql "$DB_URL" -c "REVOKE ALL PRIVILEGES ON ALL TABLES IN SCHEMA public FROM \"dev_${{ env.CONTRIBUTOR }}\";"
+          psql "$DB_URL" -c "REVOKE USAGE, SELECT ON SEQUENCE refresh_tokens_id_seq FROM \"dev_${{ env.CONTRIBUTOR }}\";"
       
       - name: Remove Temporary Role
         run: |

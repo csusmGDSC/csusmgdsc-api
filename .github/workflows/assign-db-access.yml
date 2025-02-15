@@ -17,7 +17,7 @@ jobs:
 
       - name: Create a Temporary Database Role
         run: |
-          DB_URL="postgres://${{ secrets.NEON_DB_ADMIN_USER }}:${{ secrets.NEON_DB_ADMIN_PASSWORD }}@ep-dawn-butterfly-a6u946g4.us-west-2.aws.neon.tech/GDSC_DB?sslmode=require"
+          DB_URL="postgres://${{ secrets.NEON_DB_ADMIN_USER }}:${{ secrets.NEON_DB_ADMIN_PASSWORD }}@${{ vars.NEON_DB_BRANCH_ID }}.us-west-2.aws.neon.tech/GDSC_DB?sslmode=require"
           TEMP_PASS=$(openssl rand -base64 12)
 
           # Quote the contributor's name to handle special characters like '-'
@@ -48,7 +48,7 @@ jobs:
             - **Connection String**:
 
             ```
-            postgres://dev_${{ env.CONTRIBUTOR }}:${{ env.TEMP_PASS }}@ep-dawn-butterfly-a6u946g4.us-west-2.aws.neon.tech/GDSC_DB?sslmode=require
+            postgres://dev_${{ env.CONTRIBUTOR }}:${{ env.TEMP_PASS }}@${{ vars.NEON_DB_BRANCH_ID }}.us-west-2.aws.neon.tech/GDSC_DB?sslmode=require
             ```
             
             :sparkles:Use this connection string while working on this issue!:sparkles:

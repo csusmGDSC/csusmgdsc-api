@@ -13,8 +13,9 @@ import (
 )
 
 var (
-	AccessTokenExpiry  = time.Minute * 15   // Short-lived access token
-	RefreshTokenExpiry = time.Hour * 24 * 7 // Long-lived refresh token
+	AccessTokenExpiry       = time.Minute * 15   // Short-lived access token
+	RefreshTokenExpiry      = time.Hour * 24 * 7 // Long-lived refresh token
+	VerificationTokenExpiry = time.Hour * 2      // Expiry time of Verification token
 )
 
 // Custom claims to set on JWT https://pkg.go.dev/github.com/golang-jwt/jwt/v4#NewWithClaims
@@ -24,12 +25,12 @@ type Claims struct {
 	jwt.RegisteredClaims
 }
 
-func GenerateJWT(userID uuid.UUID, role *models.Role) (string, error) {
+func GenerateJWT(userID uuid.UUID, role *models.Role, expiry time.Duration) (string, error) {
 	claims := &Claims{
 		UserID: userID.String(),
 		Role:   "not set",
 		RegisteredClaims: jwt.RegisteredClaims{
-			ExpiresAt: jwt.NewNumericDate(time.Now().Add(AccessTokenExpiry)),
+			ExpiresAt: jwt.NewNumericDate(time.Now().Add(expiry)),
 		},
 	}
 
@@ -43,9 +44,9 @@ func GenerateJWT(userID uuid.UUID, role *models.Role) (string, error) {
 	return signedString, err
 }
 
-func GenerateRefreshToken(userID uuid.UUID, role *models.Role) (string, time.Time, time.Time, error) {
+func GenerateRefreshToken(userID uuid.UUID, role *models.Role, expiry time.Duration) (string, time.Time, time.Time, error) {
 	issuedAt := jwt.NewNumericDate(time.Now())
-	expiresAt := jwt.NewNumericDate(time.Now().Add(RefreshTokenExpiry))
+	expiresAt := jwt.NewNumericDate(time.Now().Add(expiry))
 
 	claims := &Claims{
 		UserID: userID.String(),
@@ -71,6 +72,7 @@ func CreateSession(db *sql.DB, req auth_models.CreateSessionRequest) error {
 	err := refreshTokenRepo.Create(&req)
 	if err != nil {
 		return err
+
 	}
 
 	return nil

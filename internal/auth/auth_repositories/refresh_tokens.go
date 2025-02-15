@@ -20,7 +20,6 @@ func (r *RefreshTokenRepository) Create(refresh_token *auth_models.CreateSession
 		user_id, token, issued_at, expires_at, ip_address, user_agent
 		) VALUES ($1, $2, $3, $4, $5, $6)
 	`
-
 	_, err := r.db.Exec(query,
 		refresh_token.UserID,
 		refresh_token.Token,
@@ -29,7 +28,6 @@ func (r *RefreshTokenRepository) Create(refresh_token *auth_models.CreateSession
 		refresh_token.IPAddress,
 		refresh_token.UserAgent,
 	)
-
 	return err
 }
 

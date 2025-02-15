@@ -192,7 +192,7 @@ func (h *OAuthHandler) RefreshUser(c echo.Context) error {
 	}
 
 	role := models.Role(claims.Role)
-	newAccessToken, err := auth_utils.GenerateJWT(storedToken.UserID, &role)
+	newAccessToken, err := auth_utils.GenerateJWT(storedToken.UserID, &role, auth_utils.AccessTokenExpiry)
 	if err != nil {
 		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "Could not create refresh token"})
 	}

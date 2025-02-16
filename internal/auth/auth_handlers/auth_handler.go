@@ -293,10 +293,11 @@ func (h *OAuthHandler) VerifyUser(c echo.Context) error {
 	if claims.ExpiresAt.Before(time.Now()) {
 		return c.JSON(http.StatusUnauthorized, map[string]string{"error": "verifiction token expired"})
 	}
-
 	// Bind query parameter email_verified
-	var req auth_models.UpdateUserRequest
-	*req.EmailVerified = true
+	emailVerified := true
+	req := auth_models.UpdateUserRequest{
+		EmailVerified: &emailVerified,
+	}
 
 	userID := claims.UserID
 

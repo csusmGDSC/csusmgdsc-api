@@ -25,7 +25,7 @@ func (r *UserRepository) Create(user *models.User) error {
 	query := `
 		INSERT INTO users (
 			id, full_name, email, password, provider, auth_id, created_at, updated_at, is_onboarded, email_verified
-		) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+		) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, %10)
 	`
 
 	_, err := r.db.Exec(query,
@@ -199,7 +199,7 @@ func (r *UserRepository) GetByEmail(email string) (*models.User, error) {
 		SELECT id, full_name, first_name, last_name, email, password,
 		 	role, position, branch, image, github,
 			linkedin, instagram, discord, bio, tags, website,
-			graduation_date, created_at, updated_at, provider, auth_id
+			graduation_date, created_at, updated_at, provider, auth_id, email_verified
 		FROM users
 		WHERE email = $1
 	`
@@ -227,6 +227,7 @@ func (r *UserRepository) GetByEmail(email string) (*models.User, error) {
 		&user.UpdatedAt,
 		&user.Provider,
 		&user.AuthID,
+		&user.EmailVerified,
 	)
 
 	if err != nil {

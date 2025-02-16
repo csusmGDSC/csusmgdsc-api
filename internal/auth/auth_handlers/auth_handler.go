@@ -52,7 +52,7 @@ func (h *OAuthHandler) RegisterUser(c echo.Context) error {
 
 	err = auth_utils.SendVerificationEmail(user.Email, verificationToken)
 	if err != nil {
-		return c.JSON(http.StatusConflict, err.Error()) // check if this is fesiable
+		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "Failed to send verification email:" + err.Error()})
 	}
 
 	return c.JSON(http.StatusCreated, user)
@@ -100,6 +100,18 @@ func (h *OAuthHandler) LoginUser(c echo.Context) error {
 	}
 
 	c.SetCookie(cookie)
+	// If user not verified
+	if !user.EmailVerified {
+		verificationToken, err := auth_utils.GenerateJWT(user.ID, user.Role, auth_utils.VerificationTokenExpiry)
+		if err != nil {
+			return c.JSON(http.StatusInternalServerError, auth_utils.ErrVerificationToken)
+		}
+		// Send verification email
+		err = auth_utils.SendVerificationEmail(user.Email, verificationToken)
+		if err != nil {
+			return c.JSON(http.StatusInternalServerError, map[string]string{"error": "Failed to send verification email:" + err.Error()})
+		}
+	}
 
 	return c.JSON(http.StatusOK, map[string]interface{}{
 		"accessToken": accessToken,

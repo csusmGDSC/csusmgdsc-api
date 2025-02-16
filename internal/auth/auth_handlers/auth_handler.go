@@ -44,7 +44,7 @@ func (h *OAuthHandler) RegisterUser(c echo.Context) error {
 		}
 		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "Registration failed"})
 	}
-	// TODO: create and return the link for verification
+
 	verificationToken, err := auth_utils.GenerateJWT(user.ID, nil, auth_utils.RefreshTokenExpiry)
 	if err != nil {
 		return auth_utils.ErrVerificationToken
@@ -102,6 +102,7 @@ func (h *OAuthHandler) LoginUser(c echo.Context) error {
 	c.SetCookie(cookie)
 	// If user not verified
 	if !user.EmailVerified {
+		fmt.Print(user.EmailVerified)
 		verificationToken, err := auth_utils.GenerateJWT(user.ID, user.Role, auth_utils.VerificationTokenExpiry)
 		if err != nil {
 			return c.JSON(http.StatusInternalServerError, auth_utils.ErrVerificationToken)
@@ -293,7 +294,7 @@ func (h *OAuthHandler) VerifyUser(c echo.Context) error {
 	if claims.ExpiresAt.Before(time.Now()) {
 		return c.JSON(http.StatusUnauthorized, map[string]string{"error": "verifiction token expired"})
 	}
-	// Bind query parameter email_verified
+	// Email verified set to ture
 	emailVerified := true
 	req := auth_models.UpdateUserRequest{
 		EmailVerified: &emailVerified,

@@ -44,6 +44,16 @@ func (h *OAuthHandler) RegisterUser(c echo.Context) error {
 		}
 		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "Registration failed"})
 	}
+	// TODO: create and return the link for verification
+	verificationToken, err := auth_utils.GenerateJWT(user.ID, nil, auth_utils.RefreshTokenExpiry)
+	if err != nil {
+		return auth_utils.ErrVerificationToken
+	}
+
+	err = auth_utils.SendVerificationEmail(user.Email, verificationToken)
+	if err != nil {
+		return c.JSON(http.StatusConflict, err.Error()) // check if this is fesiable
+	}
 
 	return c.JSON(http.StatusCreated, user)
 }
@@ -274,9 +284,7 @@ func (h *OAuthHandler) VerifyUser(c echo.Context) error {
 
 	// Bind query parameter email_verified
 	var req auth_models.UpdateUserRequest
-	if err := c.Bind(&req); err != nil {
-		return c.JSON(http.StatusBadRequest, map[string]string{"error": "Invalid request format"})
-	}
+	*req.EmailVerified = true
 
 	userID := claims.UserID
 
@@ -291,7 +299,7 @@ func (h *OAuthHandler) VerifyUser(c echo.Context) error {
 		return c.JSON(http.StatusInternalServerError, map[string]string{"error": err.Error()})
 	}
 
-	return c.JSON(http.StatusOK, map[string]string{"message": "User updated successfully"})
+	return c.JSON(http.StatusOK, map[string]string{"message": "User is verified"})
 
 }
 

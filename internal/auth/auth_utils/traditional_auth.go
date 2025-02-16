@@ -3,12 +3,15 @@ package auth_utils
 import (
 	"database/sql"
 	"errors"
+	"fmt"
 	"time"
 
+	"github.com/csusmGDSC/csusmgdsc-api/config"
 	"github.com/csusmGDSC/csusmgdsc-api/internal/auth/auth_models"
 	"github.com/csusmGDSC/csusmgdsc-api/internal/auth/auth_repositories"
 	"github.com/csusmGDSC/csusmgdsc-api/internal/models"
 	"github.com/google/uuid"
+	"github.com/resend/resend-go/v2"
 	"golang.org/x/crypto/bcrypt"
 )
 
@@ -19,6 +22,7 @@ var (
 	ErrInvalidToken       = errors.New("invalid token")
 	ErrAccessToken        = errors.New("failed to generate access token")
 	ErrRefreshToken       = errors.New("failed to generate refresh token")
+	ErrVerificationToken  = errors.New("failed to generate a verification token")
 	ErrNewSession         = errors.New("failed to create new session")
 )
 
@@ -42,12 +46,13 @@ func RegisterUserTraditionalAuthToDatabase(db *sql.DB, req auth_models.CreateUse
 	}
 
 	user := &models.User{
-		ID:          uuid.New(),
-		Email:       *req.Email,
-		Password:    req.Password,
-		CreatedAt:   time.Now(),
-		UpdatedAt:   time.Now(),
-		IsOnboarded: false,
+		ID:            uuid.New(),
+		Email:         *req.Email,
+		Password:      req.Password,
+		CreatedAt:     time.Now(),
+		UpdatedAt:     time.Now(),
+		IsOnboarded:   false,
+		EmailVerified: false,
 	}
 
 	err = userRepo.Create(user)
@@ -85,4 +90,33 @@ func HashPassword(password string) (string, error) {
 
 func ComparePasswords(hashedPassword, password string) error {
 	return bcrypt.CompareHashAndPassword([]byte(hashedPassword), []byte(password))
+}
+
+func SendVerificationEmail(userEmail string, verificationToken string) error {
+
+	// Load the conigration keys
+	cfg := config.LoadConfig()
+	apiKey := cfg.ResendAPIKey
+
+	client := resend.NewClient(apiKey)
+
+	// init the domain variable
+	emailDomain := "tariqelamin.live" // needs to be changed to the actual csusm domain
+	URL := "https://gdsc-csusm.com/verify"
+
+	params := &resend.SendEmailRequest{
+		From:    fmt.Sprintf("CSUM_GDSC <CSUSM_GDSC@%s>", emailDomain),
+		To:      []string{userEmail},
+		Html:    fmt.Sprintf("<a href=%s?token=%s> Verify your Email</a>", URL, verificationToken),
+		Subject: "Verification Eamil",
+		Cc:      []string{""},
+		Bcc:     []string{""},
+		ReplyTo: "",
+	}
+
+	_, err := client.Emails.Send(params)
+	if err != nil {
+		return err
+	}
+	return nil
 }

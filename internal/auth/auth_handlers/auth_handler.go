@@ -258,6 +258,43 @@ func (h *OAuthHandler) DeleteUser(c echo.Context) error {
 	return c.JSON(http.StatusOK, map[string]string{"message": "User deleted successfully"})
 }
 
+func (h *OAuthHandler) VerifyUser(c echo.Context) error {
+	token := c.QueryParam("token")
+
+	// Load JWTSecret
+	cfg := config.LoadConfig()
+	claims, err := auth_utils.ValidateJWT(token, []byte(cfg.JWTAccessSecret))
+	if err != nil {
+		return c.JSON(http.StatusUnauthorized, map[string]string{"error": "invalid token"})
+	}
+	// Check if token Expired
+	if claims.ExpiresAt.Before(time.Now()) {
+		return c.JSON(http.StatusUnauthorized, map[string]string{"error": "verifiction token expired"})
+	}
+
+	// Bind query parameter email_verified
+	var req auth_models.UpdateUserRequest
+	if err := c.Bind(&req); err != nil {
+		return c.JSON(http.StatusBadRequest, map[string]string{"error": "Invalid request format"})
+	}
+
+	userID := claims.UserID
+
+	// Update User information
+	dbConn := h.DB.GetDB()
+	userRepo := auth_repositories.NewUserRepository(dbConn)
+	err = userRepo.Update(userID, req)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return c.JSON(http.StatusNotFound, map[string]string{"error": "User not found"})
+		}
+		return c.JSON(http.StatusInternalServerError, map[string]string{"error": err.Error()})
+	}
+
+	return c.JSON(http.StatusOK, map[string]string{"message": "User updated successfully"})
+
+}
+
 // Handles the initial OAuth login request
 func (h *OAuthHandler) OAuthLogin(c echo.Context) error {
 	provider := c.Param("provider")

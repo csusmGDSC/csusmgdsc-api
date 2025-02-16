@@ -22,6 +22,7 @@ type Config struct {
 	GoogleClientSecret string
 	OAuthRedirectUrl   string
 	FrontendOrigin     string
+	ResendAPIKey       string
 }
 
 var (
@@ -75,6 +76,7 @@ func LoadConfig() *Config {
 			GoogleClientID:     getEnv("GOOGLE_CLIENT_ID"),
 			GoogleClientSecret: getEnv("GOOGLE_CLIENT_SECRET"),
 			FrontendOrigin:     getEnv("FRONTEND_ORIGIN", "http://localhost:8081"),
+			ResendAPIKey:       getEnv("RESEND_API_KEY"),
 		}
 	})
 	return config

@@ -25,7 +25,7 @@ func (r *UserRepository) Create(user *models.User) error {
 	query := `
 		INSERT INTO users (
 			id, full_name, email, password, provider, auth_id, created_at, updated_at, is_onboarded, email_verified
-		) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, %10)
+		) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
 	`
 
 	_, err := r.db.Exec(query,

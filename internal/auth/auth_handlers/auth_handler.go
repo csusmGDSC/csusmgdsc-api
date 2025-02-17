@@ -102,7 +102,6 @@ func (h *OAuthHandler) LoginUser(c echo.Context) error {
 	c.SetCookie(cookie)
 	// If user not verified
 	if !user.EmailVerified {
-		fmt.Print(user.EmailVerified)
 		verificationToken, err := auth_utils.GenerateJWT(user.ID, user.Role, auth_utils.VerificationTokenExpiry)
 		if err != nil {
 			return c.JSON(http.StatusInternalServerError, auth_utils.ErrVerificationToken)

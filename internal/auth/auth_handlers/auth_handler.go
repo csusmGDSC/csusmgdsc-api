@@ -84,7 +84,6 @@ func (h *OAuthHandler) LoginUser(c echo.Context) error {
 		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "Authentication failed:" + err.Error()})
 	}
 
-	// Refactored code
 	accessToken, cookie, err := auth_utils.CreateLoginSession(dbConn, c.RealIP(), c.Request().Header.Get("User-Agent"), user)
 
 	if err == auth_utils.ErrAccessToken {
@@ -100,13 +99,13 @@ func (h *OAuthHandler) LoginUser(c echo.Context) error {
 	}
 
 	c.SetCookie(cookie)
-	// If user not verified
+
+	// Check if the user's email is not verified
 	if !user.EmailVerified {
 		verificationToken, err := auth_utils.GenerateJWT(user.ID, user.Role, auth_utils.VerificationTokenExpiry)
 		if err != nil {
 			return c.JSON(http.StatusInternalServerError, auth_utils.ErrVerificationToken)
 		}
-		// Send verification email
 		err = auth_utils.SendVerificationEmail(user.Email, verificationToken)
 		if err != nil {
 			return c.JSON(http.StatusInternalServerError, map[string]string{"error": "Failed to send verification email:" + err.Error()})
@@ -283,7 +282,6 @@ func (h *OAuthHandler) DeleteUser(c echo.Context) error {
 func (h *OAuthHandler) VerifyUser(c echo.Context) error {
 	token := c.QueryParam("token")
 
-	// Load JWTSecret
 	cfg := config.LoadConfig()
 	claims, err := auth_utils.ValidateJWT(token, []byte(cfg.JWTAccessSecret))
 	if err != nil {
@@ -293,7 +291,7 @@ func (h *OAuthHandler) VerifyUser(c echo.Context) error {
 	if claims.ExpiresAt.Before(time.Now()) {
 		return c.JSON(http.StatusUnauthorized, map[string]string{"error": "verifiction token expired"})
 	}
-	// Email verified set to ture
+	// Create an update request with emailVerified set to ture
 	emailVerified := true
 	req := auth_models.UpdateUserRequest{
 		EmailVerified: &emailVerified,
@@ -301,9 +299,10 @@ func (h *OAuthHandler) VerifyUser(c echo.Context) error {
 
 	userID := claims.UserID
 
-	// Update User information
 	dbConn := h.DB.GetDB()
 	userRepo := auth_repositories.NewUserRepository(dbConn)
+
+	// Send update request to update the user’s email verification feild in the database
 	err = userRepo.Update(userID, req)
 	if err != nil {
 		if err == sql.ErrNoRows {
@@ -313,7 +312,6 @@ func (h *OAuthHandler) VerifyUser(c echo.Context) error {
 	}
 
 	return c.JSON(http.StatusOK, map[string]string{"message": "User is verified"})
-
 }
 
 // Handles the initial OAuth login request

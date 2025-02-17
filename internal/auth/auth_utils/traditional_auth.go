@@ -100,18 +100,27 @@ func SendVerificationEmail(userEmail string, verificationToken string) error {
 
 	client := resend.NewClient(apiKey)
 
-	// init the domain variable
-	emailDomain := "tariqelamin.live" // needs to be changed to the actual csusm domain
+	emailDomain := "gdsc-csusm.com" // Needs to be verified to be able to send email or use verified Domain
 	URL := "https://gdsc-csusm.com/verify"
 
 	params := &resend.SendEmailRequest{
-		From:    fmt.Sprintf("CSUM_GDSC <CSUSM_GDSC@%s>", emailDomain),
-		To:      []string{userEmail},
-		Html:    fmt.Sprintf("<a href=%s?token=%s> Verify your Email</a>", URL, verificationToken),
+		From: fmt.Sprintf("CSUSM_GDSC <CSUSM_GDSC@%s>", emailDomain),
+		To:   []string{userEmail},
+		Html: fmt.Sprintf(`
+		<p>Hello,</p>
+		<p>Click the button below to verify:</p>
+		<a href="%s?token=%s" style="
+			display: inline-block;
+			padding: 10px 20px;
+			font-size: 16px;
+			color: #fff;
+			background-color: #007bff;
+			text-decoration: none;
+			border-radius: 5px;">
+			Click Here
+		</a>
+	`, URL, verificationToken),
 		Subject: "Verification Eamil",
-		Cc:      []string{""},
-		Bcc:     []string{""},
-		ReplyTo: "",
 	}
 
 	_, err := client.Emails.Send(params)

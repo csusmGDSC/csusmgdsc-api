@@ -107,20 +107,24 @@ func SendVerificationEmail(userEmail string, verificationToken string) error {
 		From: fmt.Sprintf("CSUSM_GDSC <CSUSM_GDSC@%s>", emailDomain),
 		To:   []string{userEmail},
 		Html: fmt.Sprintf(`
-		<p>Hello,</p>
-		<p>Click the button below to verify:</p>
-		<a href="%s?token=%s" style="
-			display: inline-block;
-			padding: 10px 20px;
-			font-size: 16px;
-			color: #fff;
-			background-color: #007bff;
-			text-decoration: none;
-			border-radius: 5px;">
-			Click Here
-		</a>
-	`, URL, verificationToken),
-		Subject: "Verification Eamil",
+			<p>Hello %s,</p>
+			<p>Welcome to GDSC-CSUSM! Please verify your email by clicking the button below:</p>
+			<p>
+				<a href="%s?token=%s" style="
+					display: inline-block;
+					padding: 10px 20px;
+					font-size: 16px;
+					color: #fff;
+					background-color: #007bff;
+					text-decoration: none;
+					border-radius: 5px;">
+					Verify Email
+				</a>
+			</p>
+			<p>If you didn’t request this, please ignore this email.</p>
+			<p>Best,<br>GDSC-CSUSM Team</p>
+		`, userEmail, URL, verificationToken),
+		Subject: "Verify Your Email for GDSC-CSUSM",
 	}
 
 	_, err := client.Emails.Send(params)

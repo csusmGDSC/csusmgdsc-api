@@ -10,8 +10,17 @@ import (
 func InitRoutes(e *echo.Echo, h *handlers.Handler) {
 	e.GET("/users", h.GetUsersHandler) // supports pagination ?page=x&limit=y
 	e.GET("/users/:id", h.GetUserByIDHandler)
+
+	e.POST("/events", h.InsertEventHandler)
 	e.GET("/events", h.GetEventsHandler) // supports pagination ?page=x&limit=y
 	e.GET("/events/:id", h.GetEventByIDHandler)
+	e.PUT("/events/:id", h.UpdateEventByID)
+	e.DELETE("/events/:id", h.DeleteEventByID)
+
+	e.POST("/events/:id/organizers/:userId", h.AddEventOrganizer)
+	e.GET("/events/:id/organizers", h.GetEventOrganizers)
+	e.GET("/users/:id/events", h.GetUserAssignedEvents)
+	e.DELETE("/events/:id/organizers/:userId", h.DeleteOrganizerFromEvent)
 
 	adminGroup := e.Group("/admin")
 	adminGroup.Use(auth_middleware.AuthMiddleware)

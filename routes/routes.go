@@ -31,6 +31,7 @@ func InitOAuthRoutes(e *echo.Echo, h *auth_handlers.OAuthHandler) {
 	authGroup := e.Group("/auth")
 	authGroup.POST("/register", h.RegisterUser)
 	authGroup.POST("/login", h.LoginUser)
+	authGroup.POST("/verify", h.VerifyUser)
 	authGroup.PATCH("/refresh", h.RefreshUser)
 	authGroup.POST("/logout", h.LogoutUser)
 	authGroup.POST("/logoutAll", h.LogoutAll, auth_middleware.AuthMiddleware)

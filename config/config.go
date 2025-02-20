@@ -22,6 +22,7 @@ type Config struct {
 	GoogleClientSecret  string
 	OAuthRedirectUrl    string
 	FrontendOrigin      string
+	ResendAPIKey        string
 	S3BucketName        string
 	AWSRegion           string
 	AWSAccessKey        string
@@ -80,6 +81,7 @@ func LoadConfig() *Config {
 			GoogleClientID:      getEnv("GOOGLE_CLIENT_ID"),
 			GoogleClientSecret:  getEnv("GOOGLE_CLIENT_SECRET"),
 			FrontendOrigin:      getEnv("FRONTEND_ORIGIN", "http://localhost:8081"),
+			ResendAPIKey:        getEnv("RESEND_API_KEY"),
 			S3BucketName:        getEnv("S3_BUCKET_NAME"),
 			AWSRegion:           getEnv("AWS_REGION"),
 			AWSAccessKey:        getEnv("AWS_ACCESS_KEY"),

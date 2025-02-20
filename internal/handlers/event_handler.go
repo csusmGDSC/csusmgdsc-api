@@ -3,6 +3,7 @@ package handlers
 import (
 	"database/sql"
 	"net/http"
+	"net/url"
 
 	"github.com/csusmGDSC/csusmgdsc-api/internal/db/repositories"
 	"github.com/csusmGDSC/csusmgdsc-api/internal/models"
@@ -28,7 +29,7 @@ func (h *Handler) InsertEventHandler(c echo.Context) error {
 	var event models.Event
 	// Bind JSON request body to the Event struct
 	if err := c.Bind(&event); err != nil {
-		return c.JSON(http.StatusBadRequest, err.Error())
+		return c.JSON(http.StatusBadRequest, map[string]string{"error": "Invalid request structure"})
 	}
 
 	// Validate the struct
@@ -43,16 +44,34 @@ func (h *Handler) InsertEventHandler(c echo.Context) error {
 		})
 	}
 
+	// Check if the image URL is valid, if its given.
+	if event.ImageSrc != nil {
+		_, err := url.ParseRequestURI(*event.ImageSrc)
+		if err != nil {
+			return c.JSON(http.StatusBadRequest, map[string]string{"error": "Invalid image URL"})
+		}
+	}
+
+	// Set default for user id if not set
+	if event.CreatedBy == nil {
+		userId, _ := c.Get("user_id").(string)
+		userUUID, err := uuid.Parse(userId)
+		if err != nil {
+			return c.JSON(http.StatusInternalServerError, map[string]string{"error": "User id does not exist in context."})
+		}
+		event.CreatedBy = &userUUID
+	}
+
 	dbConn := h.DB.GetDB()
 	eventRepo := repositories.NewEventRepository(dbConn)
 
-	err := eventRepo.InsertEvent(dbConn, event)
+	eventId, err := eventRepo.InsertEvent(dbConn, event)
 
 	if err != nil {
 		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "Failed to insert event"})
 	}
 
-	return c.JSON(http.StatusCreated, map[string]string{"message": "Event created successfully", "eventID": event.ID.String()})
+	return c.JSON(http.StatusCreated, map[string]string{"message": "Event created successfully", "eventID": eventId.String()})
 }
 
 // GetEventsHandler retrieves a paginated list of events from the database.
@@ -79,7 +98,7 @@ func (h *Handler) GetEventsHandler(c echo.Context) error {
 		if err == sql.ErrNoRows {
 			return c.JSON(http.StatusNotFound, map[string]string{"error": "No events found"})
 		}
-		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "Failed to get events: " + err.Error()})
+		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "Failed to get events"})
 	}
 
 	return c.JSON(http.StatusOK, response)
@@ -124,6 +143,11 @@ func (h *Handler) GetEventByIDHandler(c echo.Context) error {
 //
 // If no fields are changed, the function returns nil.
 func (h *Handler) UpdateEventByID(c echo.Context) error {
+	userRole, ok := c.Get("user_role").(string)
+	if !ok || userRole != "ADMIN" {
+		return c.JSON(http.StatusUnauthorized, map[string]string{"error": "Insufficient permissions"})
+	}
+
 	eventId := c.Param("id")
 
 	if eventId == "" {
@@ -137,7 +161,7 @@ func (h *Handler) UpdateEventByID(c echo.Context) error {
 
 	var event models.UpdateEventRequest
 	if err := c.Bind(&event); err != nil {
-		return c.JSON(http.StatusBadRequest, err.Error())
+		return c.JSON(http.StatusBadRequest, map[string]string{"error": "Invalid request structure"})
 	}
 
 	if err := h.Validate.Struct(event); err != nil {
@@ -159,9 +183,32 @@ func (h *Handler) UpdateEventByID(c echo.Context) error {
 		return c.JSON(http.StatusBadRequest, map[string]string{"error": "Event not found"})
 	}
 
+	oldEvent, err := eventRepo.GetByID(eventUUID)
+
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "Existing event exists but could not fetch it."})
+	}
+
+	// If a new image URL is provided and it's different from the current one, remove the old image
+	if event.ImageSrc != nil && oldEvent.ImageSrc != nil && event.ImageSrc != oldEvent.ImageSrc {
+		_, err = url.ParseRequestURI(*event.ImageSrc)
+		if err != nil {
+			return c.JSON(http.StatusBadRequest, map[string]string{"error": "Invalid image URL"})
+		}
+
+		req := c.Request()
+		q := req.URL.Query()
+		q.Set("url", *oldEvent.ImageSrc)
+		req.URL.RawQuery = q.Encode()
+
+		if err := h.RemoveImage(c); err != nil {
+			return c.JSON(http.StatusInternalServerError, map[string]string{"error": "Failed to delete old event image"})
+		}
+	}
+
 	err = eventRepo.UpdateEventById(eventUUID, event)
 	if err != nil {
-		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "Failed to update event"})
+		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "Failed to update event", "message": err.Error()})
 	}
 
 	return c.JSON(http.StatusOK, map[string]string{"message": "Event updated successfully"})
@@ -173,6 +220,11 @@ func (h *Handler) UpdateEventByID(c echo.Context) error {
 // If the deletion of the event from the events table fails, it returns a 500 status code.
 // If the deletion is successful, it returns a 200 status code with a message saying that the event was deleted successfully.
 func (h *Handler) DeleteEventByID(c echo.Context) error {
+	userRole, ok := c.Get("user_role").(string)
+	if !ok || userRole != "ADMIN" {
+		return c.JSON(http.StatusUnauthorized, map[string]string{"error": "Insufficient permissions"})
+	}
+
 	eventId := c.Param("id")
 
 	if eventId == "" {
@@ -191,6 +243,23 @@ func (h *Handler) DeleteEventByID(c echo.Context) error {
 
 	if exists, err := utilsRepo.CheckIfUUIDExists("events", "id", eventUUID); !exists || err != nil {
 		return c.JSON(http.StatusBadRequest, map[string]string{"error": "Event not found"})
+	}
+
+	event, err := eventRepo.GetByID(eventUUID)
+
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "Event exists but could not fetch it."})
+	}
+
+	if event.ImageSrc != nil {
+		req := c.Request()
+		q := req.URL.Query()
+		q.Set("url", *event.ImageSrc)
+		req.URL.RawQuery = q.Encode()
+
+		if err := h.RemoveImage(c); err != nil {
+			return c.JSON(http.StatusInternalServerError, map[string]string{"error": "Failed to delete event image"})
+		}
 	}
 
 	err = eventRepo.DeleteEventById(eventUUID)

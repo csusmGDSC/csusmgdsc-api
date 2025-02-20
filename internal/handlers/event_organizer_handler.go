@@ -16,6 +16,11 @@ import (
 // If the insertion of the event organizer into the event_organizers table fails, it returns a 500 status code.
 // If the insertion is successful, it returns a 200 status code with a message saying that the organizer was added successfully to the event.
 func (h *Handler) AddEventOrganizer(c echo.Context) error {
+	userRole, ok := c.Get("user_role").(string)
+	if !ok || userRole != "ADMIN" {
+		return c.JSON(http.StatusUnauthorized, map[string]string{"error": "Insufficient permissions"})
+	}
+
 	eventId := c.Param("id")
 	userId := c.Param("userId")
 
@@ -137,6 +142,11 @@ func (h *Handler) GetUserAssignedEvents(c echo.Context) error {
 // If the deletion of the event organizer from the event_organizers table fails, it returns a 500 status code.
 // If the deletion is successful, it returns a 200 status code with a message saying that the organizer was removed successfully from the event.
 func (h *Handler) DeleteOrganizerFromEvent(c echo.Context) error {
+	userRole, ok := c.Get("user_role").(string)
+	if !ok || userRole != "ADMIN" {
+		return c.JSON(http.StatusUnauthorized, map[string]string{"error": "Insufficient permissions"})
+	}
+
 	eventId := c.Param("id")
 	userId := c.Param("userId")
 

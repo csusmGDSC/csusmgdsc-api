@@ -13,15 +13,20 @@ import (
 )
 
 type Config struct {
-	DBConnectionUrl    string
-	JWTAccessSecret    string
-	JWTRefreshSecret   string
-	GitHubClientID     string
-	GitHubClientSecret string
-	GoogleClientID     string
-	GoogleClientSecret string
-	OAuthRedirectUrl   string
-	FrontendOrigin     string
+	DBConnectionUrl     string
+	JWTAccessSecret     string
+	JWTRefreshSecret    string
+	GitHubClientID      string
+	GitHubClientSecret  string
+	GoogleClientID      string
+	GoogleClientSecret  string
+	OAuthRedirectUrl    string
+	FrontendOrigin      string
+	S3BucketName        string
+	AWSRegion           string
+	AWSAccessKey        string
+	AWSSecretAccessKey  string
+	AWSCloudfrontDomain string
 }
 
 var (
@@ -67,14 +72,19 @@ func LoadConfig() *Config {
 		}
 
 		config = &Config{
-			DBConnectionUrl:    getEnv("DATABASE_URL"),
-			JWTAccessSecret:    getEnv("JWT_ACCESS_SECRET"),
-			JWTRefreshSecret:   getEnv("JWT_REFRESH_SECRET"),
-			GitHubClientID:     getEnv("GITHUB_CLIENT_ID"),
-			GitHubClientSecret: getEnv("GITHUB_CLIENT_SECRET"),
-			GoogleClientID:     getEnv("GOOGLE_CLIENT_ID"),
-			GoogleClientSecret: getEnv("GOOGLE_CLIENT_SECRET"),
-			FrontendOrigin:     getEnv("FRONTEND_ORIGIN", "http://localhost:8081"),
+			DBConnectionUrl:     getEnv("DATABASE_URL"),
+			JWTAccessSecret:     getEnv("JWT_ACCESS_SECRET"),
+			JWTRefreshSecret:    getEnv("JWT_REFRESH_SECRET"),
+			GitHubClientID:      getEnv("GITHUB_CLIENT_ID"),
+			GitHubClientSecret:  getEnv("GITHUB_CLIENT_SECRET"),
+			GoogleClientID:      getEnv("GOOGLE_CLIENT_ID"),
+			GoogleClientSecret:  getEnv("GOOGLE_CLIENT_SECRET"),
+			FrontendOrigin:      getEnv("FRONTEND_ORIGIN", "http://localhost:8081"),
+			S3BucketName:        getEnv("S3_BUCKET_NAME"),
+			AWSRegion:           getEnv("AWS_REGION"),
+			AWSAccessKey:        getEnv("AWS_ACCESS_KEY"),
+			AWSSecretAccessKey:  getEnv("AWS_SECRET_ACCESS_KEY"),
+			AWSCloudfrontDomain: getEnv("AWS_CLOUDFRONT_DOMAIN"),
 		}
 	})
 	return config

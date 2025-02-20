@@ -28,11 +28,11 @@ func NewEventRepository(db *sql.DB) *EventRepository {
 //
 // It returns an error if the room conversion to JSONB fails or if the database
 // insertion fails.
-func (r *EventRepository) InsertEvent(db *sql.DB, event models.Event) error {
+func (r *EventRepository) InsertEvent(db *sql.DB, event models.Event) (*uuid.UUID, error) {
 	// Convert the room struct to JSONB format
 	roomJSON, err := json.Marshal(event.Room)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	query := `
@@ -42,11 +42,14 @@ func (r *EventRepository) InsertEvent(db *sql.DB, event models.Event) error {
         ) VALUES (
             $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, 
             $11, $12, $13, $14, $15, $16, $17, $18
-        );
+        )
+		RETURNING id;
     `
 
+	var eventId = uuid.New()
+
 	_, err = db.Exec(query,
-		uuid.New(),
+		eventId,
 		event.Title,
 		roomJSON,
 		pq.Array(event.Tags),
@@ -66,7 +69,11 @@ func (r *EventRepository) InsertEvent(db *sql.DB, event models.Event) error {
 		event.CreatedBy,
 	)
 
-	return err
+	if err != nil {
+		return nil, err
+	}
+
+	return &eventId, nil
 }
 
 // GetByID retrieves an event given its ID.
@@ -83,10 +90,11 @@ func (r *EventRepository) GetByID(id uuid.UUID) (*models.Event, error) {
 		WHERE id = $1
 	`
 
+	var roomJSON []byte
 	err := r.db.QueryRow(query, id).Scan(
 		&event.ID,
 		&event.Title,
-		&event.Room,
+		&roomJSON,
 		pq.Array(&event.Tags),
 		&event.StartTime,
 		&event.EndTime,
@@ -103,6 +111,13 @@ func (r *EventRepository) GetByID(id uuid.UUID) (*models.Event, error) {
 		&event.UpdatedAt,
 		&event.CreatedBy,
 	)
+
+	if err != nil {
+		return nil, err
+	}
+
+	// Convert JSONB back to Room struct
+	err = json.Unmarshal(roomJSON, &event.Room)
 
 	if err != nil {
 		return nil, err
@@ -148,15 +163,15 @@ func (r *EventRepository) GetAll(pageStr string, limitStr string) (*models.AllEv
 			date, 
 			repository_url, 
 			slides_url, 
-			imageSrc, 
+			image_src, 
 			virtual_url, 
 			description, 
 			about, 
-			createdAt, 
-			updatedAt, 
-			createdBy
+			created_at, 
+			updated_at, 
+			created_by
 		FROM events
-		ORDER BY createdAt DESC
+		ORDER BY created_at DESC
 		LIMIT $1 OFFSET $2
 	`
 
@@ -169,10 +184,11 @@ func (r *EventRepository) GetAll(pageStr string, limitStr string) (*models.AllEv
 	var events []*models.Event
 	for rows.Next() {
 		var event models.Event
+		var roomJSON []byte
 		err := rows.Scan(
 			&event.ID,
 			&event.Title,
-			&event.Room,
+			&roomJSON,
 			pq.Array(&event.Tags),
 			&event.StartTime,
 			&event.EndTime,
@@ -189,6 +205,13 @@ func (r *EventRepository) GetAll(pageStr string, limitStr string) (*models.AllEv
 			&event.UpdatedAt,
 			&event.CreatedBy,
 		)
+		if err != nil {
+			return nil, err
+		}
+
+		// Convert JSONB back to Room struct
+		err = json.Unmarshal(roomJSON, &event.Room)
+
 		if err != nil {
 			return nil, err
 		}
@@ -246,45 +269,78 @@ func (r *EventRepository) DeleteEventById(id uuid.UUID) error {
 func (r *EventRepository) UpdateEventById(id uuid.UUID, event models.UpdateEventRequest) error {
 	updates := make([]string, 0)
 	values := make([]interface{}, 0)
-	valueIndex := 1 // Start at 1 because $1 is EventID
+	valueIndex := 1
 
-	// Helper function to append fields to updates and values
-	appendIfNotNil := func(fieldName string, fieldValue interface{}) {
-		if fieldValue != nil {
-			updates = append(updates, fmt.Sprintf("%s = $%d", fieldName, valueIndex))
-			values = append(values, fieldValue)
-			valueIndex++
+	addUpdate := func(field string, value interface{}) {
+		updates = append(updates, fmt.Sprintf("%s = $%d", field, valueIndex))
+		values = append(values, value)
+		valueIndex++
+	}
+
+	if event.Room != nil {
+		roomJSON, err := json.Marshal(event.Room)
+		if err != nil {
+			return err
 		}
+		addUpdate("room", roomJSON)
 	}
 
-	// Convert room struct into JSONB
-	roomJSON, err := json.Marshal(event.Room)
-	if err != nil {
-		return err
+	fields := make(map[string]interface{})
+
+	// Conditionally add each field if the pointer is not nil
+	if event.Title != nil {
+		fields["title"] = *event.Title
+	}
+	if event.About != nil {
+		fields["about"] = *event.About
+	}
+	if event.Date != nil {
+		fields["date"] = *event.Date
+	}
+	if event.Description != nil {
+		fields["description"] = *event.Description
+	}
+	if event.StartTime != nil {
+		fields["start_time"] = *event.StartTime
+	}
+	if event.EndTime != nil {
+		fields["end_time"] = *event.EndTime
+	}
+	if event.Location != nil {
+		fields["location"] = *event.Location
+	}
+	if event.ImageSrc != nil {
+		fields["image_src"] = *event.ImageSrc
+	}
+	if event.RepositoryURL != nil {
+		fields["repository_url"] = *event.RepositoryURL
+	}
+	if event.SlidesURL != nil {
+		fields["slides_url"] = *event.SlidesURL
+	}
+	if event.VirtualURL != nil {
+		fields["virtual_url"] = *event.VirtualURL
+	}
+	if event.Type != nil {
+		fields["type"] = *event.Type
 	}
 
-	appendIfNotNil("title", event.Title)
-	appendIfNotNil("about", event.About)
-	appendIfNotNil("date", event.Date)
-	appendIfNotNil("description", event.Description)
-	appendIfNotNil("start_time", event.StartTime)
-	appendIfNotNil("end_time", event.EndTime)
-	appendIfNotNil("image_src", event.ImageSrc)
-	appendIfNotNil("location", event.Location)
-	appendIfNotNil("repository_url", event.RepositoryURL)
-	appendIfNotNil("virtual_url", event.VirtualURL)
-	appendIfNotNil("slides_url", event.SlidesURL)
-	appendIfNotNil("tags", pq.Array(event.Tags))
-	appendIfNotNil("type", event.Type)
-	appendIfNotNil("room", roomJSON)
+	// Add all validated fields to updates
+	for field, value := range fields {
+		addUpdate(field, value)
+	}
+
+	if event.Tags != nil {
+		addUpdate("tags", pq.Array(event.Tags))
+	}
 
 	if len(updates) == 0 {
 		return nil
 	}
 
-	updates = append(updates, fmt.Sprintf("updated_at = $%d", valueIndex))
-	values = append(values, time.Now())
-	valueIndex++
+	addUpdate("updated_at", time.Now())
+
+	values = append(values, id)
 
 	query := fmt.Sprintf(`
 		UPDATE events
@@ -292,8 +348,6 @@ func (r *EventRepository) UpdateEventById(id uuid.UUID, event models.UpdateEvent
 		WHERE id = $%d
 	`, strings.Join(updates, ", "), valueIndex)
 
-	values = append(values, id)
-
-	_, err = r.db.Exec(query, values)
+	_, err := r.db.Exec(query, values...)
 	return err
 }

@@ -108,7 +108,7 @@ func (h *OAuthHandler) LoginUser(c echo.Context) error {
 		}
 		err = auth_utils.SendVerificationEmail(user.Email, verificationToken)
 		if err != nil {
-			return c.JSON(http.StatusInternalServerError, map[string]string{"error": "Failed to send verification email:" + err.Error()})
+			return c.JSON(http.StatusInternalServerError, map[string]string{"error": "Failed to send verification email:"})
 		}
 	}
 

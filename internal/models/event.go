@@ -7,28 +7,48 @@ import (
 )
 
 type Event struct {
-	ID               uuid.UUID   `json:"id,omitempty"`
-	Title            string      `json:"title" validate:"required"`
-	Room             *CSUSMRoom  `json:"room,omitempty"`
-	Tags             []string    `json:"tags,omitempty"`
-	StartTime        time.Time   `json:"startTime" validate:"required"`
-	EndTime          time.Time   `json:"endTime" validate:"required"`
-	Type             EventType   `json:"type" validate:"required"`
-	Location         *string     `json:"location,omitempty"`
-	Date             time.Time   `json:"date" validate:"required"`
-	GithubRepo       *string     `json:"githubRepo,omitempty"`
-	SlidesURL        *string     `json:"slidesURL,omitempty"`
-	ImageSrc         *[]byte     `json:"imageSrc,omitempty"`
-	VirtualURL       *string     `json:"virtualURL,omitempty"`
-	ExtraImageSrcs   [][]byte    `json:"extraImageSrcs,omitempty"`
-	Description      string      `json:"description" validate:"required"`
-	About            *string     `json:"about,omitempty"`
-	AttendeeIds      []uuid.UUID `json:"attendeeIds,omitempty"`
-	OrganizerIds     []uuid.UUID `json:"organizerIds" validate:"required"`
-	UsersAttendedIds []uuid.UUID `json:"usersAttendedIds,omitempty"`
-	CreatedAt        time.Time   `json:"createdAt,omitempty"`
-	UpdatedAt        time.Time   `json:"updatedAt,omitempty"`
-	CreatedBy        *uuid.UUID  `json:"createdBy,omitempty"`
+	ID            uuid.UUID  `json:"id,omitempty"`
+	Title         string     `json:"title" validate:"required"`
+	Room          *CSUSMRoom `json:"room,omitempty"`
+	Tags          []string   `json:"tags,omitempty"`
+	StartTime     time.Time  `json:"start_time" validate:"required"`
+	EndTime       time.Time  `json:"end_time" validate:"required"`
+	Type          EventType  `json:"type" validate:"required"`
+	Location      *string    `json:"location,omitempty"`
+	Date          time.Time  `json:"date" validate:"required"`
+	RepositoryURL *string    `json:"repository_url,omitempty"`
+	SlidesURL     *string    `json:"slides_url,omitempty"`
+	ImageSrc      *string    `json:"image_src,omitempty"`
+	VirtualURL    *string    `json:"virtual_url,omitempty"`
+	Description   string     `json:"description" validate:"required"`
+	About         *string    `json:"about,omitempty"`
+	CreatedAt     time.Time  `json:"created_at,omitempty"`
+	UpdatedAt     time.Time  `json:"updated_at,omitempty"`
+	CreatedBy     *uuid.UUID `json:"created_by,omitempty"`
+}
+
+type UpdateEventRequest struct {
+	ID            *uuid.UUID `json:"id,omitempty" db:"id"`
+	Title         *string    `json:"title,omitempty"`
+	Room          *CSUSMRoom `json:"room,omitempty"`
+	Tags          []string   `json:"tags,omitempty"`
+	StartTime     *time.Time `json:"start_time,omitempty"`
+	EndTime       *time.Time `json:"end_time,omitempty"`
+	Type          *EventType `json:"type,omitempty"`
+	Location      *string    `json:"location,omitempty"`
+	Date          *time.Time `json:"date,omitempty"`
+	RepositoryURL *string    `json:"repository_url,omitempty"`
+	SlidesURL     *string    `json:"slides_url,omitempty"`
+	ImageSrc      *string    `json:"image_src,omitempty"`
+	VirtualURL    *string    `json:"virtual_url,omitempty"`
+	Description   *string    `json:"description,omitempty"`
+	About         *string    `json:"about,omitempty"`
+}
+
+type EventOrganizer struct {
+	EventID   uuid.UUID `json:"event_id" validate:"required"`
+	UserID    uuid.UUID `json:"user_id" validate:"required"`
+	CreatedAt time.Time `json:"created_at,omitempty"`
 }
 
 type AllEventsResponse struct {

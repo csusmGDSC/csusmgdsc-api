@@ -1,7 +1,6 @@
 package handlers
 
 import (
-	"log"
 	"net/http"
 	"time"
 
@@ -52,18 +51,6 @@ func (h *Handler) InsertCommentHandler(c echo.Context) error {
 		return c.JSON(http.StatusBadRequest, map[string]string{"error": "content is required"})
 	}
 
-	// Validate the struct
-	if err := h.Validate.Struct(comment); err != nil {
-		var validationErrors []string
-		for _, err := range err.(validator.ValidationErrors) {
-			validationErrors = append(validationErrors, err.Field()+" "+err.Tag())
-		}
-
-		return c.JSON(http.StatusBadRequest, map[string]interface{}{
-			"errors": validationErrors,
-		})
-	}
-
 	comment.ID = uuid.New()
 	comment.CreatedAt = time.Now()
 	comment.UpdatedAt = time.Now()
@@ -85,7 +72,6 @@ func (h *Handler) InsertCommentHandler(c echo.Context) error {
 	}
 
 	if err := commentRepo.CreateComment(dbConn, comment); err != nil {
-		log.Println(err)
 		return c.JSON(http.StatusInternalServerError, map[string]string{"message": "Failed to create comment"})
 	}
 

@@ -3,9 +3,9 @@ package auth_repositories
 import (
 	"database/sql"
 	"errors"
+	"fmt"
 	"strconv"
 	"strings"
-	"time"
 
 	"github.com/csusmGDSC/csusmgdsc-api/internal/auth/auth_models"
 	"github.com/csusmGDSC/csusmgdsc-api/internal/models"
@@ -24,8 +24,8 @@ func NewUserRepository(db *sql.DB) *UserRepository {
 func (r *UserRepository) Create(user *models.User) error {
 	query := `
 		INSERT INTO users (
-			id, full_name, email, password, provider, auth_id, created_at, updated_at, is_onboarded
-		) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+			id, full_name, email, password, provider, auth_id, created_at, updated_at, is_onboarded, email_verified
+		) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
 	`
 
 	_, err := r.db.Exec(query,
@@ -38,148 +38,159 @@ func (r *UserRepository) Create(user *models.User) error {
 		user.CreatedAt,
 		user.UpdatedAt,
 		user.IsOnboarded,
+		user.EmailVerified,
 	)
 
 	return err
 }
 
-// Fields that are specified as NOT NULL in the database must be assigned
-// from current user data before updating
-func (r *UserRepository) Update(userID string, req auth_models.UpdateUserRequest) (*models.User, error) {
-	userUuid, err := uuid.Parse(userID)
-	if err != nil {
-		return nil, err
-	}
-
-	// Get the current user data
-	currentUser, err := r.GetByID(userUuid)
-	if err != nil {
-		return nil, err
-	}
-
-	// If currentUser.FirstName, currentUser.LastName, or currentUser.FullName are nil,
-	// set to empty strings, this may occur if the user has not been onboarded yet
-	// or onboarded incorrectly
-	firstName := ""
-	lastName := ""
-	fullName := ""
-
-	// User has already been onboarded, so use current values
-	if currentUser.FirstName != nil {
-		firstName = *currentUser.FirstName
-	}
-	if currentUser.LastName != nil {
-		lastName = *currentUser.LastName
-	}
-	if currentUser.FullName != nil {
-		fullName = *currentUser.FullName
-	}
+func (r *UserRepository) Update(userID string, req auth_models.UpdateUserRequest) error {
+	var updates []string
+	var args []interface{}
+	argIdx := 1
+	var firstName, lastName *string
 
 	if req.FirstName != nil {
-		firstName = *req.FirstName
+		updates = append(updates, fmt.Sprintf("first_name = $%d", argIdx))
+		args = append(args, *req.FirstName)
+		firstName = req.FirstName
+		argIdx++
 	}
 	if req.LastName != nil {
-		lastName = *req.LastName
+		updates = append(updates, fmt.Sprintf("last_name = $%d", argIdx))
+		args = append(args, *req.LastName)
+		lastName = req.LastName
+		argIdx++
 	}
-	if req.FirstName != nil || req.LastName != nil {
-		fullName = strings.TrimSpace(firstName + " " + lastName)
+	if req.Image != nil {
+		updates = append(updates, fmt.Sprintf("image = $%d", argIdx))
+		args = append(args, *req.Image)
+		argIdx++
 	}
-
-	// If position and branch have not been set, default to student and project branch
-	position := models.Student
-	branch := models.Projects
-	if currentUser.Position != nil {
-		position = *currentUser.Position
+	if req.TotalPoints != nil {
+		updates = append(updates, fmt.Sprintf("total_points = $%d", argIdx))
+		args = append(args, *req.TotalPoints)
+		argIdx++
 	}
-	if currentUser.Branch != nil {
-		branch = *currentUser.Branch
+	if req.Role != nil {
+		updates = append(updates, fmt.Sprintf("role = $%d", argIdx))
+		args = append(args, *req.Role)
+		argIdx++
 	}
 	if req.Position != nil {
-		position = *req.Position
+		updates = append(updates, fmt.Sprintf("position = $%d", argIdx))
+		args = append(args, *req.Position)
+		argIdx++
 	}
 	if req.Branch != nil {
-		branch = *req.Branch
+		updates = append(updates, fmt.Sprintf("branch = $%d", argIdx))
+		args = append(args, *req.Branch)
+		argIdx++
 	}
-
-	query := `
-        UPDATE users
-        SET
-            full_name = $1,
-            first_name = $2,
-            last_name = $3,
-            position = $4,
-            branch = $5,
-            github = $6,
-            linkedin = $7,
-            instagram = $8,
-            discord = $9,
-            bio = $10,
-            tags = $11,
-            website = $12,
-            graduation_date = $13,
-            updated_at = $14,
-			is_onboarded = $15
-        WHERE id = $16
-        RETURNING id, full_name, first_name, last_name, email, image,
-				role, position, branch, github, linkedin,
-                instagram, discord, bio, tags, website, graduation_date,
-                created_at, updated_at, is_onboarded
-    `
-	now := time.Now()
-
-	// if tags is nil, use the current tags
-	tags := currentUser.Tags
+	if req.Github != nil {
+		updates = append(updates, fmt.Sprintf("github = $%d", argIdx))
+		args = append(args, *req.Github)
+		argIdx++
+	}
+	if req.Linkedin != nil {
+		updates = append(updates, fmt.Sprintf("linkedin = $%d", argIdx))
+		args = append(args, *req.Linkedin)
+		argIdx++
+	}
+	if req.Instagram != nil {
+		updates = append(updates, fmt.Sprintf("instagram = $%d", argIdx))
+		args = append(args, *req.Instagram)
+		argIdx++
+	}
+	if req.Discord != nil {
+		updates = append(updates, fmt.Sprintf("discord = $%d", argIdx))
+		args = append(args, *req.Discord)
+		argIdx++
+	}
+	if req.Bio != nil {
+		updates = append(updates, fmt.Sprintf("bio = $%d", argIdx))
+		args = append(args, *req.Bio)
+		argIdx++
+	}
 	if req.Tags != nil {
-		tags = req.Tags
+		updates = append(updates, fmt.Sprintf("tags = $%d", argIdx))
+		args = append(args, pq.Array(req.Tags))
+		argIdx++
+	}
+	if req.Website != nil {
+		updates = append(updates, fmt.Sprintf("website = $%d", argIdx))
+		args = append(args, *req.Website)
+		argIdx++
+	}
+	if req.GraduationDate != nil {
+		updates = append(updates, fmt.Sprintf("graduation_date = $%d", argIdx))
+		args = append(args, *req.GraduationDate)
+		argIdx++
+	}
+	if req.IsOnboarded != nil {
+		updates = append(updates, fmt.Sprintf("is_onboarded = $%d", argIdx))
+		args = append(args, *req.IsOnboarded)
+		argIdx++
+	}
+	if req.EmailVerified != nil {
+		updates = append(updates, fmt.Sprintf("email_verified = $%d", argIdx))
+		args = append(args, *req.EmailVerified)
+		argIdx++
 	}
 
-	user := &models.User{}
-	err = r.db.QueryRow(
-		query,
-		fullName,
-		firstName,
-		lastName,
-		position,
-		branch,
-		req.Github,
-		req.Linkedin,
-		req.Instagram,
-		req.Discord,
-		req.Bio,
-		tags,
-		req.Website,
-		req.GraduationDate,
-		now,
-		req.IsOnboarded,
-		userID,
-	).Scan(
-		&user.ID,
-		&user.FullName,
-		&user.FirstName,
-		&user.LastName,
-		&user.Email,
-		&user.Image,
-		&user.Role,
-		&user.Position,
-		&user.Branch,
-		&user.Github,
-		&user.Linkedin,
-		&user.Instagram,
-		&user.Discord,
-		&user.Bio,
-		pq.Array(&user.Tags),
-		&user.Website,
-		&user.GraduationDate,
-		&user.CreatedAt,
-		&user.UpdatedAt,
-		&user.IsOnboarded,
-	)
+	// Update full_name if first_name or last_name is updated
+	if firstName != nil || lastName != nil {
+		updates = append(updates, fmt.Sprintf("full_name = $%d", argIdx))
 
+		// Use sql.NullString to handle potential NULL values
+		var currentFirstName, currentLastName sql.NullString
+
+		err := r.db.QueryRow("SELECT first_name, last_name FROM users WHERE id = $1", userID).Scan(&currentFirstName, &currentLastName)
+		if err != nil {
+			return fmt.Errorf("failed to fetch existing names: %w", err)
+		}
+
+		// Convert sql.NullString to string safely
+		firstNameStr := ""
+		lastNameStr := ""
+
+		if currentFirstName.Valid {
+			firstNameStr = currentFirstName.String
+		}
+		if currentLastName.Valid {
+			lastNameStr = currentLastName.String
+		}
+
+		// Use updated values if available
+		if firstName != nil {
+			firstNameStr = *firstName
+		}
+		if lastName != nil {
+			lastNameStr = *lastName
+		}
+
+		// Construct full_name
+		fullName := strings.TrimSpace(fmt.Sprintf("%s %s", firstNameStr, lastNameStr))
+		args = append(args, fullName)
+		argIdx++
+	}
+
+	// If no fields to update, return early
+	if len(updates) == 0 {
+		return nil
+	}
+
+	// Construct the final query
+	query := fmt.Sprintf("UPDATE users SET %s WHERE id = $%d", strings.Join(updates, ", "), argIdx)
+	args = append(args, userID)
+
+	// Execute query
+	_, err := r.db.Exec(query, args...)
 	if err != nil {
-		return nil, err
+		return fmt.Errorf("failed to update user: %w", err)
 	}
 
-	return user, nil
+	return nil
 }
 
 func (r *UserRepository) GetByEmail(email string) (*models.User, error) {
@@ -188,7 +199,7 @@ func (r *UserRepository) GetByEmail(email string) (*models.User, error) {
 		SELECT id, full_name, first_name, last_name, email, password,
 		 	role, position, branch, image, github,
 			linkedin, instagram, discord, bio, tags, website,
-			graduation_date, created_at, updated_at, provider, auth_id
+			graduation_date, created_at, updated_at, provider, auth_id, email_verified
 		FROM users
 		WHERE email = $1
 	`
@@ -216,6 +227,7 @@ func (r *UserRepository) GetByEmail(email string) (*models.User, error) {
 		&user.UpdatedAt,
 		&user.Provider,
 		&user.AuthID,
+		&user.EmailVerified,
 	)
 
 	if err != nil {
@@ -286,10 +298,31 @@ func (r *UserRepository) AuthIDExists(authID string) (bool, error) {
 func (r *UserRepository) GetByID(id uuid.UUID) (*models.User, error) {
 	user := &models.User{}
 	query := `
-		SELECT id, full_name, first_name, last_name, email, 
-			role, position, branch, image, github,
-			linkedin, instagram, discord, bio, tags, website,
-			graduation_date, created_at, updated_at
+		SELECT id, 
+			full_name,
+			first_name,
+			last_name,
+			email,
+			password,
+			image,
+			total_points,
+			role,
+			position,
+			branch,
+			github,
+			linkedin,
+			instagram,
+			discord,
+			bio,
+			tags,
+			website,
+			graduation_date,
+			created_at,
+			updated_at,
+			provider,
+			auth_id,
+			is_onboarded,
+			email_verified,
 		FROM users
 		WHERE id = $1
 	`
@@ -300,10 +333,12 @@ func (r *UserRepository) GetByID(id uuid.UUID) (*models.User, error) {
 		&user.FirstName,
 		&user.LastName,
 		&user.Email,
+		&user.Password,
+		&user.Image,
+		&user.TotalPoints,
 		&user.Role,
 		&user.Position,
 		&user.Branch,
-		&user.Image,
 		&user.Github,
 		&user.Linkedin,
 		&user.Instagram,
@@ -314,6 +349,10 @@ func (r *UserRepository) GetByID(id uuid.UUID) (*models.User, error) {
 		&user.GraduationDate,
 		&user.CreatedAt,
 		&user.UpdatedAt,
+		&user.Provider,
+		&user.AuthID,
+		&user.IsOnboarded,
+		&user.EmailVerified,
 	)
 
 	if err != nil {
@@ -359,22 +398,33 @@ func (r *UserRepository) GetAll(pageStr string, limitStr string) (*auth_models.A
 
 	// Calculate offset
 	offset := (page - 1) * limit
-
 	query := `
 		SELECT 
 			id, 
-			email, 
-			password,
 			full_name,
 			first_name,
 			last_name,
+			email,
+			password,
 			image,
-			is_onboarded,
+			total_points,
 			role,
+			position,
+			branch,
+			github,
+			linkedin,
+			instagram,
+			discord,
+			bio,
+			tags,
+			website,
+			graduation_date,
+			created_at,
+			updated_at,
 			provider,
 			auth_id,
-			created_at,
-			updated_at
+			is_onboarded,
+			email_verified
 		FROM users
 		ORDER BY created_at DESC
 		LIMIT $1 OFFSET $2
@@ -391,18 +441,30 @@ func (r *UserRepository) GetAll(pageStr string, limitStr string) (*auth_models.A
 		var user models.User
 		err := rows.Scan(
 			&user.ID,
-			&user.Email,
-			&user.Password,
 			&user.FullName,
 			&user.FirstName,
 			&user.LastName,
+			&user.Email,
+			&user.Password,
 			&user.Image,
-			&user.IsOnboarded,
+			&user.TotalPoints,
 			&user.Role,
-			&user.Provider,
-			&user.AuthID,
+			&user.Position,
+			&user.Branch,
+			&user.Github,
+			&user.Linkedin,
+			&user.Instagram,
+			&user.Discord,
+			&user.Bio,
+			&user.Tags,
+			&user.Website,
+			&user.GraduationDate,
 			&user.CreatedAt,
 			&user.UpdatedAt,
+			&user.Provider,
+			&user.AuthID,
+			&user.IsOnboarded,
+			&user.EmailVerified,
 		)
 		if err != nil {
 			return nil, err

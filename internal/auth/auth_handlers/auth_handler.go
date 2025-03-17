@@ -42,7 +42,17 @@ func (h *OAuthHandler) RegisterUser(c echo.Context) error {
 		if err == auth_utils.ErrUserExists {
 			return c.JSON(http.StatusConflict, map[string]string{"error": "Email already registered"})
 		}
-		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "Registration failed: " + err.Error()})
+		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "Registration failed"})
+	}
+
+	verificationToken, err := auth_utils.GenerateJWT(user.ID, nil, auth_utils.RefreshTokenExpiry)
+	if err != nil {
+		return auth_utils.ErrVerificationToken
+	}
+
+	err = auth_utils.SendVerificationEmail(user.Email, verificationToken)
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "Failed to send verification email"})
 	}
 
 	return c.JSON(http.StatusCreated, user)
@@ -74,7 +84,6 @@ func (h *OAuthHandler) LoginUser(c echo.Context) error {
 		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "Authentication failed:" + err.Error()})
 	}
 
-	// Refactored code
 	accessToken, cookie, err := auth_utils.CreateLoginSession(dbConn, c.RealIP(), c.Request().Header.Get("User-Agent"), user)
 
 	if err == auth_utils.ErrAccessToken {
@@ -90,6 +99,18 @@ func (h *OAuthHandler) LoginUser(c echo.Context) error {
 	}
 
 	c.SetCookie(cookie)
+
+	// Check if the user's email is not verified
+	if !user.EmailVerified {
+		verificationToken, err := auth_utils.GenerateJWT(user.ID, user.Role, auth_utils.VerificationTokenExpiry)
+		if err != nil {
+			return c.JSON(http.StatusInternalServerError, auth_utils.ErrVerificationToken)
+		}
+		err = auth_utils.SendVerificationEmail(user.Email, verificationToken)
+		if err != nil {
+			return c.JSON(http.StatusInternalServerError, map[string]string{"error": "Failed to send verification email:"})
+		}
+	}
 
 	return c.JSON(http.StatusOK, map[string]interface{}{
 		"accessToken": accessToken,
@@ -192,7 +213,7 @@ func (h *OAuthHandler) RefreshUser(c echo.Context) error {
 	}
 
 	role := models.Role(claims.Role)
-	newAccessToken, err := auth_utils.GenerateJWT(storedToken.UserID, &role)
+	newAccessToken, err := auth_utils.GenerateJWT(storedToken.UserID, &role, auth_utils.AccessTokenExpiry)
 	if err != nil {
 		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "Could not create refresh token"})
 	}
@@ -220,22 +241,11 @@ func (h *OAuthHandler) UpdateUser(c echo.Context) error {
 		return c.JSON(http.StatusBadRequest, map[string]string{"error": "Invalid request format"})
 	}
 
-	// Validate the request
-	if err := h.Validate.Struct(req); err != nil {
-		var validationErrors []string
-		for _, err := range err.(validator.ValidationErrors) {
-			validationErrors = append(validationErrors, err.Field()+" "+err.Tag())
-		}
-		return c.JSON(http.StatusBadRequest, map[string]interface{}{
-			"errors": validationErrors,
-		})
-	}
-
 	dbConn := h.DB.GetDB()
 
 	// Update user
 	userRepo := auth_repositories.NewUserRepository(dbConn)
-	updatedUser, err := userRepo.Update(userID, req)
+	err := userRepo.Update(userID, req)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return c.JSON(http.StatusNotFound, map[string]string{"error": "User not found"})
@@ -243,7 +253,7 @@ func (h *OAuthHandler) UpdateUser(c echo.Context) error {
 		return c.JSON(http.StatusInternalServerError, map[string]string{"error": err.Error()})
 	}
 
-	return c.JSON(http.StatusOK, updatedUser)
+	return c.JSON(http.StatusOK, map[string]string{"message": "User updated successfully"})
 }
 
 // // TODO: Add Role checking to allow Admin's to delete non-Admin users
@@ -267,6 +277,41 @@ func (h *OAuthHandler) DeleteUser(c echo.Context) error {
 	}
 
 	return c.JSON(http.StatusOK, map[string]string{"message": "User deleted successfully"})
+}
+
+func (h *OAuthHandler) VerifyUser(c echo.Context) error {
+	token := c.QueryParam("token")
+
+	cfg := config.LoadConfig()
+	claims, err := auth_utils.ValidateJWT(token, []byte(cfg.JWTAccessSecret))
+	if err != nil {
+		return c.JSON(http.StatusUnauthorized, map[string]string{"error": "invalid token"})
+	}
+	// Check if token Expired
+	if claims.ExpiresAt.Before(time.Now()) {
+		return c.JSON(http.StatusUnauthorized, map[string]string{"error": "verifiction token expired"})
+	}
+	// Create an update request with emailVerified set to ture
+	emailVerified := true
+	req := auth_models.UpdateUserRequest{
+		EmailVerified: &emailVerified,
+	}
+
+	userID := claims.UserID
+
+	dbConn := h.DB.GetDB()
+	userRepo := auth_repositories.NewUserRepository(dbConn)
+
+	// Send update request to update the user’s email verification feild in the database
+	err = userRepo.Update(userID, req)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return c.JSON(http.StatusNotFound, map[string]string{"error": "User not found"})
+		}
+		return c.JSON(http.StatusInternalServerError, map[string]string{"error": err.Error()})
+	}
+
+	return c.JSON(http.StatusOK, map[string]string{"message": "User is verified"})
 }
 
 // Handles the initial OAuth login request

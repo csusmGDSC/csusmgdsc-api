@@ -10,8 +10,11 @@ import (
 func InitRoutes(e *echo.Echo, h *handlers.Handler) {
 	e.GET("/users", h.GetUsersHandler) // supports pagination ?page=x&limit=y
 	e.GET("/users/:id", h.GetUserByIDHandler)
+
 	e.GET("/events", h.GetEventsHandler) // supports pagination ?page=x&limit=y
 	e.GET("/events/:id", h.GetEventByIDHandler)
+	e.GET("/events/:id/organizers", h.GetEventOrganizers)
+	e.GET("/users/:id/events", h.GetUserAssignedEvents)
 
 	adminGroup := e.Group("/admin")
 	adminGroup.Use(auth_middleware.AuthMiddleware)
@@ -23,12 +26,21 @@ func InitRoutes(e *echo.Echo, h *handlers.Handler) {
 	e.GET("/comments/:id", h.GetCommentByIdHandler)
 	e.PUT("/comments/:id", h.UpdateCommentHandler, auth_middleware.AuthMiddleware)
 	e.DELETE("/comments/:id", h.DeleteCommentHandler, auth_middleware.AuthMiddleware)
+  
+	adminGroup.PUT("/events/:id", h.UpdateEventByID)
+	adminGroup.DELETE("/events/:id", h.DeleteEventByID)
+	adminGroup.POST("/events/:id/organizers/:userId", h.AddEventOrganizer)
+	adminGroup.DELETE("/events/:id/organizers/:userId", h.DeleteOrganizerFromEvent)
+	adminGroup.POST("/utils/image", h.UploadImage)
+	adminGroup.DELETE("/utils/image", h.RemoveImage)
+
 }
 
 func InitOAuthRoutes(e *echo.Echo, h *auth_handlers.OAuthHandler) {
 	authGroup := e.Group("/auth")
 	authGroup.POST("/register", h.RegisterUser)
 	authGroup.POST("/login", h.LoginUser)
+	authGroup.POST("/verify", h.VerifyUser)
 	authGroup.PATCH("/refresh", h.RefreshUser)
 	authGroup.POST("/logout", h.LogoutUser)
 	authGroup.POST("/logoutAll", h.LogoutAll, auth_middleware.AuthMiddleware)

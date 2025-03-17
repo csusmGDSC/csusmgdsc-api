@@ -1,0 +1,36 @@
+name: Cleanup DB Access on Issue Close or PR Close
+on:
+  issues:
+    types:
+      - closed
+  pull_request:
+    types:
+      - closed
+
+jobs:
+  revoke-db-access:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Extract Contributor Username
+        run: |
+          # For Issue Close Trigger
+          if [[ "${{ github.event_name }}" == "issues" ]]; then
+            echo "CONTRIBUTOR=${{ github.event.issue.user.login }}" >> $GITHUB_ENV
+          # For PR Close Trigger
+          elif [[ "${{ github.event_name }}" == "pull_request" ]]; then
+            echo "CONTRIBUTOR=${{ github.event.pull_request.user.login }}" >> $GITHUB_ENV
+          fi
+
+      - name: Revoke Temp User Privileges
+        run: |
+          DB_URL="postgres://${{ secrets.NEON_DB_ADMIN_USER }}:${{ secrets.NEON_DB_ADMIN_PASSWORD }}@${{ vars.NEON_DB_BRANCH_ID }}.us-west-2.aws.neon.tech/GDSC_DB?sslmode=require"
+          psql "$DB_URL" -c "REVOKE ALL PRIVILEGES ON DATABASE \"GDSC_DB\" FROM \"dev_${{ env.CONTRIBUTOR }}\";"
+          psql "$DB_URL" -c "REVOKE ALL PRIVILEGES ON SCHEMA public FROM \"dev_${{ env.CONTRIBUTOR }}\";"
+          psql "$DB_URL" -c "REVOKE ALL PRIVILEGES ON ALL TABLES IN SCHEMA public FROM \"dev_${{ env.CONTRIBUTOR }}\";"
+          psql "$DB_URL" -c "REVOKE USAGE, SELECT ON SEQUENCE refresh_tokens_id_seq FROM \"dev_${{ env.CONTRIBUTOR }}\";"
+      
+      - name: Remove Temporary Role
+        run: |
+          DB_URL="postgres://${{ secrets.NEON_DB_USER }}:${{ secrets.NEON_DB_PASSWORD }}@${{ vars.NEON_DB_BRANCH_ID }}.us-west-2.aws.neon.tech/GDSC_DB?sslmode=require"
+          # Drop the temporary role
+          psql "$DB_URL" -c "DROP ROLE IF EXISTS \"dev_${{ env.CONTRIBUTOR }}\";"

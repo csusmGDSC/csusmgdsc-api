@@ -157,12 +157,12 @@ func HandleOAuthCallback(provider string, code string) (*auth.OAuthUserData, err
 
 func CreateLoginSession(dbConn *sql.DB, realIP string, userAgentKey string, user *models.User) (string, *http.Cookie, error) {
 
-	accessToken, err := GenerateJWT(user.ID, user.Role)
+	accessToken, err := GenerateJWT(user.ID, user.Role, AccessTokenExpiry)
 	if err != nil {
 		return "", nil, ErrAccessToken
 	}
 
-	refreshToken, issuedAt, expiresAt, err := GenerateRefreshToken(user.ID, user.Role)
+	refreshToken, issuedAt, expiresAt, err := GenerateRefreshToken(user.ID, user.Role, RefreshTokenExpiry)
 	if err != nil {
 		return "", nil, ErrRefreshToken
 	}

@@ -1,0 +1,54 @@
+name: Assign Neon DB Access to Contributor
+on:
+  issues:
+    types:
+      - assigned
+
+jobs:
+  grant-db-access:
+    runs-on: ubuntu-latest
+    permissions:
+        issues: write
+    steps:
+      - name: Extract contributor and issue number
+        run: |
+          echo "CONTRIBUTOR=${{ github.event.assignee.login }}" >> $GITHUB_ENV
+          echo "ISSUE_NUMBER=${{ github.event.issue.number }}" >> $GITHUB_ENV
+
+      - name: Create a Temporary Database Role
+        run: |
+          DB_URL="postgres://${{ secrets.NEON_DB_ADMIN_USER }}:${{ secrets.NEON_DB_ADMIN_PASSWORD }}@${{ vars.NEON_DB_BRANCH_ID }}.us-west-2.aws.neon.tech/GDSC_DB?sslmode=require"
+          TEMP_PASS=$(openssl rand -base64 12)
+
+          # Quote the contributor's name to handle special characters like '-'
+          psql "$DB_URL" -c "CREATE ROLE \"dev_${{ env.CONTRIBUTOR }}\" WITH LOGIN PASSWORD '$TEMP_PASS';"
+          psql "$DB_URL" -c "GRANT CONNECT ON DATABASE \"GDSC_DB\" TO \"dev_${{ env.CONTRIBUTOR }}\";"
+          psql "$DB_URL" -c "GRANT USAGE ON SCHEMA public TO \"dev_${{ env.CONTRIBUTOR }}\";"
+          psql "$DB_URL" -c "GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public TO \"dev_${{ env.CONTRIBUTOR }}\";"
+          psql "$DB_URL" -c "GRANT USAGE, SELECT ON SEQUENCE refresh_tokens_id_seq TO \"dev_${{ env.CONTRIBUTOR }}\";"
+          psql "$DB_URL" -c "GRANT \"dev_${{ env.CONTRIBUTOR }}\" TO ${{ secrets.NEON_DB_USER}} WITH ADMIN OPTION;"
+
+          echo "TEMP_PASS=$TEMP_PASS" >> $GITHUB_ENV
+
+      - name: Add Comment to Issue
+        run: gh issue comment ${{ github.event.issue.number }} --body "$BODY"
+        env: 
+          GH_TOKEN: ${{ secrets.GDSC_GITHUB_TOKEN }}
+          GH_REPO: ${{ github.repository }}
+          NUMBER: ${{ github.event.issue.number }}
+          BODY: >
+            Neon Database Access Granted
+
+            - **Branch**: `test-branch`
+
+            - **Username**: `dev_${{ env.CONTRIBUTOR }}`
+
+            - **Password**: `${{ env.TEMP_PASS }}`
+            
+            - **Connection String**:
+
+            ```
+            postgres://dev_${{ env.CONTRIBUTOR }}:${{ env.TEMP_PASS }}@${{ vars.NEON_DB_BRANCH_ID }}.us-west-2.aws.neon.tech/GDSC_DB?sslmode=require
+            ```
+            
+            :sparkles:Use this connection string while working on this issue!:sparkles:

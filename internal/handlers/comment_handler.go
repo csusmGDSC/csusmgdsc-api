@@ -284,10 +284,6 @@ func (h *Handler) UpdateCommentHandler(c echo.Context) error {
 		return c.JSON(http.StatusBadRequest, map[string]string{"error": "Comment not found"})
 	}
 
-	if err != nil {
-		return c.JSON(http.StatusBadRequest, map[string]string{"error": "Invalid comment ID"})
-	}
-
 	err = commentRepo.UpdateCommentByCommentId(commentUUID, comment)
 	if err != nil {
 		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "Failed to update comment"})

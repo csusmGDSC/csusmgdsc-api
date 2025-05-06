@@ -16,6 +16,13 @@ func InitRoutes(e *echo.Echo, h *handlers.Handler) {
 	e.GET("/events/:id/organizers", h.GetEventOrganizers)
 	e.GET("/users/:id/events", h.GetUserAssignedEvents)
 
+	e.POST("/comments", h.InsertCommentHandler, auth_middleware.AuthMiddleware)
+	e.GET("/comments", h.GetCommentsHandler) // supports optional params ?event_id=x&user_id=y
+	e.GET("/comments/:id/replies", h.GetCommentRepliesHandler)
+	e.GET("/comments/:id", h.GetCommentByIdHandler)
+	e.PUT("/comments/:id", h.UpdateCommentHandler, auth_middleware.AuthMiddleware)
+	e.DELETE("/comments/:id", h.DeleteCommentHandler, auth_middleware.AuthMiddleware)
+
 	adminGroup := e.Group("/admin")
 	adminGroup.Use(auth_middleware.AuthMiddleware)
 	adminGroup.POST("/events", h.InsertEventHandler)
